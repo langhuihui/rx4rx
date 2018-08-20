@@ -53,8 +53,8 @@ A standard for creating reactive program library faster and more lightweight tha
 const cb123 = (n,c)=>{
     const stop = ()=>c=null
     n(1,stop)
-    n(2,stop)
-    n(3,stop)
+    c && n(2,stop)
+    c && n(3,stop)
     c && c()
     return stop
 }
