@@ -1,0 +1,22 @@
+{
+  "name": "rxlite",
+  "version": "1.0.0",
+  "description": "a library for implemention of rxlite-std",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/langhuihui/rxlite-std.git"
+  },
+  "keywords": [
+    "rx"
+  ],
+  "author": "dexter",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/langhuihui/rxlite-std/issues"
+  },
+  "homepage": "https://github.com/langhuihui/rxlite-std#readme"
+}

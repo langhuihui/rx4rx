@@ -1,0 +1,145 @@
+Intel(R) Core(TM) i5-6200U CPU @ 2.30GHz Windows7 SP1 x64
+
+filter -> map -> reduce 1000000 integers
+-----------------------------------------------
+cbx          50.74 op/s ±  2.37%   (61 samples)
+cb-basics    31.14 op/s ±  2.28%   (41 samples)
+xstream      15.83 op/s ±  2.43%   (42 samples)
+most        287.93 op/s ±  3.87%   (75 samples)
+rx 6         14.02 op/s ±  9.08%   (65 samples)
+kefir         7.88 op/s ± 11.44%   (41 samples)
+highland      4.95 op/s ±  8.48%   (29 samples)
+lodash       15.58 op/s ±  5.19%   (38 samples)
+Array         3.39 op/s ± 11.02%   (12 samples)
+-----------------------------------------------
+
+merge 100000 x 10 streams
+-----------------------------------------------
+cbx          51.11 op/s ±  3.95%   (61 samples)
+cb-basics    23.31 op/s ±  4.46%   (57 samples)
+xstream      18.22 op/s ±  5.61%   (47 samples)
+most        108.53 op/s ±  8.01%   (62 samples)
+rx 6         17.55 op/s ±  8.66%   (47 samples)
+kefir         8.43 op/s ±  6.18%   (43 samples)
+bacon         0.99 op/s ±  7.76%   (10 samples)
+lodash       14.33 op/s ±  5.66%   (32 samples)
+Array        29.54 op/s ±  6.05%   (41 samples)
+-----------------------------------------------
+
+combine(add3) -> filter 500000 x 3 integers
+-----------------------------------------------
+cbx          25.22 op/s ±  1.69%   (62 samples)
+cb-basics    17.60 op/s ±  2.48%   (56 samples)
+xstream      24.10 op/s ±  3.41%   (60 samples)
+most         50.33 op/s ±  8.18%   (64 samples)
+rx 6         26.78 op/s ±  8.00%   (69 samples)
+-----------------------------------------------
+
+scan -> reduce 1000000 integers
+-----------------------------------------------
+cbx          16.53 op/s ±  7.04%   (43 samples)
+cb-basics    17.28 op/s ±  5.02%   (48 samples)
+xstream      14.26 op/s ±  2.11%   (69 samples)
+most        263.55 op/s ±  0.48%   (85 samples)
+rx 6         15.67 op/s ±  3.09%   (75 samples)
+kefir        13.64 op/s ± 12.49%   (70 samples)
+bacon         0.66 op/s ± 12.55%    (8 samples)
+highland      4.97 op/s ± 11.92%   (29 samples)
+lodash        6.19 op/s ±  9.40%   (20 samples)
+Array         2.06 op/s ±  5.02%   (10 samples)
+-----------------------------------------------
+
+dataflow for 1000000 source events
+-----------------------------------------------
+cbx           7.24 op/s ±  2.98%   (38 samples)
+cb-basics     5.34 op/s ±  8.87%   (29 samples)
+xstream       3.58 op/s ±  1.43%   (22 samples)
+most          9.82 op/s ±  9.30%   (48 samples)
+rx 6          3.38 op/s ± 13.25%   (23 samples)
+-----------------------------------------------
+
+filter -> map -> fusion 1000000 integers
+-----------------------------------------------
+cbx          25.36 op/s ±  0.98%   (44 samples)
+cb-basics    13.54 op/s ± 15.76%   (25 samples)
+xstream      24.02 op/s ±  1.26%   (59 samples)
+most         90.10 op/s ±  1.37%   (83 samples)
+rx 6         20.28 op/s ±  7.34%   (50 samples)
+kefir         3.74 op/s ± 16.75%   (24 samples)
+highland      3.00 op/s ± 12.93%   (21 samples)
+lodash       12.48 op/s ±  4.47%   (35 samples)
+Array         1.21 op/s ±  3.02%    (8 samples)
+-----------------------------------------------
+
+Linux 2GHz
+
+filter -> map -> reduce 1000000 integers
+-----------------------------------------------
+cbx          29.11 op/s ±  1.30%   (67 samples)
+cb-basics    18.99 op/s ±  0.82%   (47 samples)
+xstream       6.99 op/s ±  1.68%   (37 samples)
+most        168.61 op/s ±  1.44%   (81 samples)
+rx 6          5.18 op/s ±  3.10%   (29 samples)
+kefir         6.34 op/s ±  0.74%   (34 samples)
+highland      3.39 op/s ±  2.55%   (21 samples)
+lodash       15.71 op/s ±  2.92%   (40 samples)
+Array         4.09 op/s ±  2.59%   (15 samples)
+-----------------------------------------------
+
+merge 100000 x 10 streams
+-----------------------------------------------
+cbx          31.31 op/s ±  3.40%   (71 samples)
+cb-basics    16.80 op/s ±  1.12%   (74 samples)
+xstream      13.46 op/s ±  1.22%   (63 samples)
+most        192.54 op/s ±  1.01%   (83 samples)
+rx 6          5.03 op/s ±  3.01%   (28 samples)
+kefir         5.53 op/s ±  1.75%   (31 samples)
+bacon         0.55 op/s ± 10.03%    (7 samples)
+lodash       15.07 op/s ±  6.77%   (43 samples)
+Array        23.88 op/s ±  3.71%   (42 samples)
+-----------------------------------------------
+
+combine(add3) -> filter 500000 x 3 integers
+-----------------------------------------------
+cbx          12.67 op/s ±  1.77%   (59 samples)
+cb-basics    10.67 op/s ±  0.63%   (52 samples)
+xstream      11.42 op/s ±  1.07%   (55 samples)
+most         28.25 op/s ±  1.09%   (65 samples)
+rx 6          8.13 op/s ±  0.96%   (42 samples)
+-----------------------------------------------
+
+scan -> reduce 1000000 integers
+-----------------------------------------------
+cbx           8.91 op/s ±  1.65%   (45 samples)
+cb-basics     9.02 op/s ±  1.88%   (45 samples)
+xstream       6.26 op/s ±  0.95%   (34 samples)
+most        197.34 op/s ±  1.04%   (78 samples)
+rx 6          5.79 op/s ±  0.64%   (32 samples)
+kefir         8.52 op/s ±  1.67%   (43 samples)
+bacon         0.39 op/s ± 16.28%    (6 samples)
+highland      3.45 op/s ±  2.61%   (21 samples)
+lodash        4.28 op/s ±  5.12%   (15 samples)
+Array         2.57 op/s ±  6.52%   (11 samples)
+-----------------------------------------------
+
+dataflow for 1000000 source events
+-----------------------------------------------
+cbx           3.93 op/s ±  2.21%   (23 samples)
+cb-basics     3.89 op/s ±  0.96%   (23 samples)
+xstream       1.72 op/s ±  1.09%   (13 samples)
+most          8.99 op/s ±  1.04%   (45 samples)
+rx 6          1.14 op/s ±  1.20%   (10 samples)
+-----------------------------------------------
+
+filter -> map -> fusion 1000000 integers
+-----------------------------------------------
+cbx          10.71 op/s ±  1.04%   (52 samples)
+cb-basics     8.78 op/s ±  1.81%   (44 samples)
+xstream       6.98 op/s ±  1.52%   (37 samples)
+most         72.06 op/s ±  1.11%   (78 samples)
+rx 6          8.05 op/s ±  0.56%   (41 samples)
+kefir         4.29 op/s ±  1.05%   (25 samples)
+highland      1.75 op/s ±  2.03%   (13 samples)
+lodash        9.51 op/s ±  3.66%   (27 samples)
+Array         1.92 op/s ±  2.26%    (9 samples)
+-----------------------------------------------
