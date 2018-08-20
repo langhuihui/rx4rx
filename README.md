@@ -51,12 +51,12 @@ A standard for creating reactive program library faster and more lightweight tha
 > 创建一个数据源Callbag 激活后发送数字1，2，3，然后完成
 ```js
 const cb123 = (n,c)=>{
-    const close = ()=>c=null
-    n(1,c)
-    n(2,c)
-    n(3,c)
+    const stop = ()=>c=null
+    n(1,stop)
+    n(2,stop)
+    n(3,stop)
     c && c()
-    return close
+    return stop
 }
 ```
 
