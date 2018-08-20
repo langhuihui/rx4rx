@@ -5,7 +5,7 @@ A standard for creating reactive program library faster and more lightweight tha
 
 > * 轻量级,标准库实现使用了极小的代码
 > * 高性能，标准库实现性能高于rxjs2倍多，略高于callbag
-> * 没有核心库，只是一份**标准**，任何人可以基于此标准编写自己的库（标准库的实现可以参考[rxlite-stdlib](https://github.com/langhuihui/rxlite-std/)）
+> * 没有核心库，只是一份**标准**，任何人可以基于此标准编写自己的库（标准库的实现可以参考[rxlite-stdlib](https://github.com/langhuihui/rxlite-std/tree/master/stdlib)）
 > * 比callbag更容易理解和扩展自己的实用库
 
 ## 概述
