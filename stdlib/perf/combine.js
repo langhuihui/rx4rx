@@ -82,7 +82,7 @@ suite.add('rxlite', function(deferred) {
     }, options)
     .add('rx 6', function(deferred) {
         runners.runRx6(deferred,
-            rxjs.combineLatest(rx1, rx2, rx3, add3).pipe(rxjsOperators.filter(even)));
+            rxjs.combineLatest(rx1, rx2, rx3).pipe(rxjsOperators.map(add3Arr), rxjsOperators.filter(even)));
     }, options)
 
 runners.runSuite(suite);

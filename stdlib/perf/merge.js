@@ -55,7 +55,7 @@ suite.add('rxlite', function(deferred) {
         runners.runCallbagX(deferred,
             callbagX.pipe(
                 merge(streams),
-                callbagX.scan(sum, 0)
+                callbagX.reduce(sum, 0)
             )
         );
     }, options)

@@ -7,13 +7,49 @@ const once = f => (...args) => {
         return r
     }
 }
+class Asap {
+    constructor() {
+        this.asaps = []
+        this._asaps = []
+    }
+    push(task) {
+        this.asaps.push(task)
+    }
+    _push(task) {
+        this._asaps.push(task)
+    }
+    run(task) {
+        this.run = this.push
+        if (task) this.asaps.push(task)
+        Promise.resolve(this).then(_this => {
+            _this.run = _this._push
+            for (let i = 0, l = _this.asaps.length; i < l; i++) {
+                _this.asaps[i]()
+            }
+            _this.asaps = _this._asaps
+            _this._asaps = []
+            delete _this.run;
+            if (_this.asaps.length) {
+                _this.run()
+            }
+        })
+    }
+}
+
+const _asap = new Asap
+
+function asap(task, defer) {
+    _asap.run(task)
+    return defer
+}
+exports.asap = asap;
 
 function getError(msg) {
     return new Error(msg)
 }
 //在完成时返回数据的一类
 function _result(f, aac, source) {
-    return source(d => aac = f(aac, d), err ? c(err) : (n(aac, noop), c()))
+    return (n, c) => source(d => aac = f(aac, d), err => err ? c(err) : (n(aac), c()))
 }
 exports.pipe = (first, ...cbs) => cbs.reduce((aac, c) => c(aac), first);
 //在pipe的基础上增加了start和stop方法，方便反复调用
@@ -44,64 +80,55 @@ exports.subject = () => {
     return _subject
 }
 
-exports.fromArray = array => (n, c, pos = 0, l = array.length) => {
-    const close = () => (pos = l, c = noop);
-    while (pos < l) n(array[pos++], close)
-    c()
-    return close;
-}
+exports.fromArray = array => (n, c, pos = 0, l = array.length) =>
+    asap(() => {
+        while (pos < l) n(array[pos++])
+        c()
+    }, () => (pos = l, c = noop))
+
 
 exports.of = (...items) => exports.fromArray(items)
 exports.interval = period => n => {
     let i = 0;
-    const close = () => clearInterval(id)
-    const id = setInterval(() => n(i++, close), period)
-    return close
+    const id = setInterval(() => n(i++), period)
+    return () => clearInterval(id)
 }
 exports.timer = (delay, period) => n => {
     let i = 0;
     let clear = clearTimeout
-    const close = () => clear(id)
     let id = setTimeout(() => {
         clear = clearInterval
-        id = setInterval(() => n(i++, close), period)
+        id = setInterval(() => n(i++), period)
     }, delay)
-    return close
+    return () => clear(id)
 }
-exports.fromEventPattern = (add, remove) => n => {
-    const handler = event => n(event, close)
-    const close = () => remove(handler)
-    add(handler)
-    return close
-}
+exports.fromEventPattern = (add, remove) => n => asap(() => add(n), () => remove(n))
 exports.fromEvent = (target, name) => typeof target.on == 'function' ? exports.fromEventPattern(handler => target.on(name, handler), handler => target.off(name, handler)) : exports.fromEventPattern(handler => target.addEventListener(name, handler), handler => target.removeEventListener(name, handler))
-exports.range = (start, count) => (n, c, pos = start, end = count + start) => {
-    const close = () => c = null;
-    while (c && pos < end) n(pos++, close)
-    c && c()
-    return close
-}
+exports.range = (start, count) => (n, c, pos = start, end = count + start) => asap(() => {
+    while (pos < end) n(pos++)
+    c()
+}, () => (pos = end, c = noop))
 
 exports.fromPromise = source => (n, c) => {
-    const close = () => c = null
-    source.then(d => (c && n(d, close), c && c())).catch(e => c && c(e))
-    return close
+    source.then(d => (c && n(d), c && c())).catch(e => c && c(e))
+    return () => c = null
 }
 exports.fromIterable = source => (n, c) => {
     const iterator = source[Symbol.iterator]()
     let value, rv;
     let done = false;
-    const close = () => (iterator.return(_), done = true, c = noop)
-    try {
-        while (!done) {
-            ({ value, done } = iterator.next(rv))
-            rv = n(value, close)
+    asap(() => {
+        try {
+            while (!done) {
+                ({ value, done } = iterator.next(rv))
+                rv = n(value)
+            }
+            c()
+        } catch (e) {
+            c(e)
         }
-        c()
-    } catch (e) {
-        c(e)
-    }
-    return close
+    })
+    return () => (iterator.return(_), done = true, c = noop)
 }
 exports.from = source => {
     switch (true) {
@@ -115,19 +142,14 @@ exports.from = source => {
             return exports.of(source)
     }
 }
-exports.bindCallback = (call, thisArg, ...args) => (n, c) => {
-    const close = () => c = null
-    const inArgs = args.concat((...rargs) => (c && n(rargs.length > 1 ? rargs : rargs[0], close), c && c()));
+exports.bindCallback = (call, thisArg, ...args) => (n, c) => asap(() => {
+    const inArgs = args.concat((...rargs) => (c && n(rargs.length > 1 ? rargs : rargs[0]), c && c()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
-    return close
-}
-exports.bindNodeCallback = (call, thisArg, ...args) => (n, c) => {
-    const close = () => c = null
-    const inArgs = args.concat((err, ...rargs) => (c && err && c(err)) || (c && n(rargs.length > 1 ? rargs : rargs[0], close), c && c()));
+}, () => c = null)
+exports.bindNodeCallback = (call, thisArg, ...args) => (n, c) => asap(() => {
+    const inArgs = args.concat((err, ...rargs) => (c && err && c(err)) || (c && n(rargs.length > 1 ? rargs : rargs[0]), c && c()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
-    return close
-}
-
+}, () => c = null)
 exports.never = n => noop
 exports.throwError = e => (n, c) => (c(e), noop)
 exports.empty = exports.throwError()
@@ -136,38 +158,20 @@ exports.empty = exports.throwError()
 exports.iif = (condition, trueS, falseS) => (n, c) => condition() ? trueS(n, c) : falseS(n, c)
 exports.race = (...sources) => (n, c) => {
     const close = () => defers.forEach(defer => defer())
-    const _n = d => (close(), n(d, () => c = noop), c())
+    const _n = d => (close(), n(d), c())
     let nLife = sources.length;
     const _c = err => --nLife === 0 && c(err);
     const defers = sources.map(source => source(_n, _c))
     return close
 }
-exports.concat = (...sources) => (n, c) => {
-    let pos = 0,
-        sdefer = noop;
-    const _n = (d, s) => n(d, () => (s(), pos = l));
-    const l = sources.length;
-    const f = err => {
-        if (err) c(err)
-        else if (pos < l)
-            sdefer = sources[pos++](_n, f)
-        else
-            c();
-    }
-    f()
-    return () => (pos = l, sdefer())
-}
+exports.concat = (...sources) => (n, c, pos = 0, sdefer = noop, l = sources.length, f = err => err ? c(err) : pos < l ? sdefer = sources[pos++](n, f) : c()) => (f(), () => (pos = l, sdefer()))
+
 exports.merge = (...sources) => (n, c) => {
     const nTotal = sources.length;
-    const defers = [];
     let nLife = nTotal;
     const _c = err => --nLife === 0 && c();
-    const close = () => defers.forEach(defer => defer())
-    const _n = (d, s) => n(d, () => (c = null, s(), close()))
-    for (let i = 0; i < nTotal && c; ++i) {
-        defers.push(sources[i](_n, _c))
-    }
-    return close
+    const defers = sources.forEach(source => source(n, _c))
+    return () => defers.forEach(defer => defer())
 }
 exports.combineLatest = (...sources) => (n, c) => {
     const nTotal = sources.length;
@@ -175,38 +179,31 @@ exports.combineLatest = (...sources) => (n, c) => {
     let nRun = 0;
     let _c = err => (--nLife) === 0 && c(err);
     const array = new Array(nTotal)
-    const defers = [];
-    const close = () => defers.forEach(defer => defer())
     const _n = i => {
-        const $n = (d, s) => {
+        const $n = d => {
             array[i] = d;
             if (nRun === nTotal) { //所有源都激活了，可以组织推送数据了，切换到第三状态
-                n(array, () => (c = null, s(), close()));
-                __n = d => (array[i] = d, n(array, close));
+                n(array);
+                __n = d => (array[i] = d, n(array));
             }
         }
-        let __n = (d, s) => (++nRun, $n(d, s), __n = $n); //第一次数据达到后激活,切换到第二状态
-        return (d, s) => __n(d, s)
+        let __n = d => (++nRun, __n = $n, __n(d)); //第一次数据达到后激活,切换到第二状态
+        return d => __n(d)
     }
-    for (let i = 0; i < nTotal && c; ++i) {
-        defers.push(sources[i](_n(i), _c))
-    }
-    return close
+    const defers = sources.forEach((source, i) => source(_n(i), _c))
+    return () => defers.forEach(defer => defer())
 }
-exports.startWith = (...xs) => inputSource => (n, c) => {
-    let pos = 0,
-        defer = noop;
-    const l = xs.length
-    const close = () => (pos = l, defer(), c = null)
-    while (pos < l) n(xs[pos++], close)
-    if (c) defer = inputSource(n, c)
-    return close
-}
+exports.startWith = (...xs) => inputSource => (n, c, pos, defer = noop, l = xs.length) =>
+    asap(() => {
+        while (pos < l) n(xs[pos++])
+        if (c) defer = inputSource(n, c)
+    }, () => (pos = l, defer(), c = null))
+
 exports.share = source => {
     let sourceDefer = noop;
     const ns = []
     const nc = []
-    const next = d => ns.forEach(n => n(d, n.close))
+    const next = d => ns.forEach(n => n(d))
     const complete = e => {
         nc.forEach(c => c(e))
         ns.length = nc.length = 0
@@ -215,28 +212,30 @@ exports.share = source => {
     return (n, c) => {
         ns.push(n)
         nc.push(c)
-        const close = () => {
+        if (sourceDefer === noop) sourceDefer = source(next, complete)
+        return () => {
             ns.splice(ns.indexOf(n), 1)
             nc.splice(nc.indexOf(c), 1)
             if (nc.length === 0) sourceDefer = (sourceDefer(), noop);
         }
-        n.close = close
-        if (sourceDefer === noop) sourceDefer = source(next, complete)
-        return close
     }
 }
 
 //FILTERING
 exports.ignoreElements = source => (n, c) => source(noop, c)
-exports.take = count => source => (n, c, _count = count) => source((d, s) => (n(d), --_count === 0 && s()), c)
-exports.takeUntil = sSrc => src => (n, c) => {
-    let sd = noop;
-    const ssd = sSrc((d, s) => (sd(), s(), c(), c = null), noop)
-    const close = () => (ssd(), sd())
-    if (c) sd = src((d, s) => n(d, () => (close(), s())), err => (ssd(), c(err)))
-    return close
+exports.take = count => source => (n, c, _count = count) => {
+    const defer = source(d => (n(d), --_count === 0 && (defer(), c())), c)
+    return defer
 }
-exports.takeWhile = f => source => (n, c) => source((d, s) => f(d) ? n(d, s) : (s(), c()), c)
+exports.takeUntil = sSrc => src => (n, c) => {
+    const ssd = sSrc(d => (sd(), ssd(), c()), noop)
+    const sd = src(n, err => (ssd(), c(err)))
+    return () => (ssd(), sd())
+}
+exports.takeWhile = f => source => (n, c) => {
+    const defer = source(d => f(d) ? n(d) : (defer(), c()), c);
+    return defer
+}
 exports.takeLast = count => source => _result((buffer, d) => {
     buffer.push(d)
     if (buffer.length > count) buffer.shift()
@@ -245,17 +244,17 @@ exports.takeLast = count => source => _result((buffer, d) => {
 exports.skip = count => source => (n, c) => {
     let _count = count;
     let _n = () => (--_count === 0 && (_n = n));
-    return source((d, s) => _n(d, s), c)
+    return source(d => _n(d), c)
 }
 exports.skipUntil = sSrc => src => (n, c) => {
     let _n = noop
-    const ssd = sSrc((d, s) => ((_n = n), s()), noop)
-    const sd = src((d, s) => _n(d, s), err => (ssd(), c(err)))
+    const ssd = sSrc(d => ((_n = n), ssd()), noop)
+    const sd = src(d => _n(d), err => (ssd(), c(err)))
     return () => (ssd(), sd())
 }
 exports.skipWhile = f => source => (n, c) => {
-    let _n = (d, s) => (f(d) || (_n = n, n(d, s)));
-    return source((d, s) => _n(d, s), c)
+    let _n = d => (f(d) || (_n = n, n(d)));
+    return source(d => _n(d), c)
 }
 const defaultThrottleConfig = { leading: true, trailing: false }
 
@@ -265,27 +264,27 @@ exports.throttle = (durationSelector, config = defaultThrottleConfig) => source 
     let last = null
     let hasValue = false;
 
-    function send(d, s) {
+    function send(d) {
         if (hasValue) {
-            n(d, s)
+            n(d)
             throttle(d)
         }
         hasValue = false
     }
 
-    function throttleDone(d, s) {
-        if (_throttled) s && s()
+    function throttleDone() {
+        if (_throttled) _defer()
         _throttled = false
         if (config.trailing) {
             send(last, noop)
         }
     }
     const throttle = d => (_throttled = true, _defer = durationSelector(d)(throttleDone, throttleDone))
-    const defer = source((d, s) => {
+    const defer = source(d => {
         last = d
         hasValue = true
         if (!_throttled) {
-            if (config.leading) send(d, s)
+            if (config.leading) send(d)
             else throttle(d)
         }
     }, err => err ? c(err) : (throttleDone(), c()))
@@ -293,12 +292,18 @@ exports.throttle = (durationSelector, config = defaultThrottleConfig) => source 
 }
 const defaultAuditConfig = { leading: false, trailing: true }
 exports.audit = durationSelector => exports.throttle(durationSelector, defaultAuditConfig)
-exports.filter = f => source => (n, c) => source((d, s) => f(d) && n(d, s), c)
-exports.elementAt = (count, defaultValue) => source => (n, c, result = defaultValue, _count = count) => source((d, s) => _count-- === 0 && ((result = d), s(), n(d, noop), c()), err => err || last === void 0 && (err = getError('no elements in sequence')) ? c(err) : c())
+exports.filter = f => source => (n, c) => source(d => f(d) && n(d), c)
+exports.elementAt = (count, defaultValue) => source => (n, c, result = defaultValue, _count = count) => {
+    const defer = source(d => _count-- === 0 && ((result = d), defer(), n(d), c()), err => err || last === void 0 && (err = getError('no elements in sequence')) ? c(err) : c());
+    return defer
+}
 exports.find = f => source => exports.take(1)(exports.skipWhile(d => !f(d))(source))
-exports.findIndex = f => source => (n, c, i = 0) => source((d, s) => f(d) ? (n(i++, noop), s(), c()) : ++i, c)
-exports.first = (condition = () => true, defaultValue) => source => (n, c, first = defaultValue, count = 0) => source(d => condition(d, count++) && (first = d) && (n(first, noop), c()), err => err || first === void 0 && (err = getError('no elements in sequence')) ? c(err) : c())
-exports.last = (condition = () => true, defaultValue) => source => (n, c, last = defaultValue, count = 0) => source(d => condition(d, count++) && (last = d), err => err || last === void 0 && (err = getError('no elements in sequence')) ? c(err) : (n(last, noop), c()))
+exports.findIndex = f => source => (n, c, i = 0) => {
+    const defer = source(d => f(d) ? (n(i++), defer(), c()) : ++i, c)
+    return defer
+}
+exports.first = (condition = () => true, defaultValue) => source => (n, c, first = defaultValue, count = 0) => source(d => condition(d, count++) && (first = d) && (n(first), c()), err => err || first === void 0 && (err = getError('no elements in sequence')) ? c(err) : c())
+exports.last = (condition = () => true, defaultValue) => source => (n, c, last = defaultValue, count = 0) => source(d => condition(d, count++) && (last = d), err => err || last === void 0 && (err = getError('no elements in sequence')) ? c(err) : (n(last), c()))
 
 //MATHEMATICAL
 
@@ -308,8 +313,8 @@ exports.min = source => _result((min, d) => !(d > min) ? d : min, NaN, source)
 exports.reduce = (...args) => source => _result((acc, d) => d, void 0, exports.scan(...args)(source))
 
 //TRANSFORMATION
-exports.pluck = s => source => (n, c) => source((d, s) => n(d[s], s), c)
-exports.repeat = count => source => (n, c, buffer = [], _count = count) => source((d, s) => (buffer.push(d), n(d, s)), err => {
+exports.pluck = s => source => (n, c) => source(d => n(d[s]), c)
+exports.repeat = count => source => (n, c, buffer = [], _count = count) => source(d => (buffer.push(d), n(d)), err => {
     if (err) c(err)
     else {
         const repeatSource = exports.fromArray(buffer)
@@ -317,19 +322,15 @@ exports.repeat = count => source => (n, c, buffer = [], _count = count) => sourc
         again()
     }
 })
-exports.pairwise = source => (n, c, last, _n = d => (last = d, _n = (d, s) => n([last, d], s))) => source((d, s) => _n(d, s), c)
-exports.map = f => source => (n, c) => source((d, s) => n(f(d), s), c);
+exports.pairwise = source => (n, c, last, _n = d => (last = d, _n = d => (n([last, d]), last = d))) => source(d => _n(d), c)
+exports.map = f => source => (n, c) => source(d => n(f(d)), c);
 exports.switchMap = (makeSource, combineResults) => inputSource => (n, c) => {
     let currDisposable = null,
         sourceEnded = false,
         dispose = noop
-    const close = () => {
-        dispose()
-        currDisposable = (currDisposable && currDisposable(), null)
-    }
     dispose = inputSource((d, s) =>
         currDisposable = (currDisposable && currDisposable(),
-            makeSource(d)(combineResults ? ($d, $s) => n(combineResults(d, $d), () => (s(), $s(), close())) : n,
+            makeSource(d)(combineResults ? $d => n(combineResults(d, $d)) : n,
                 err => {
                     currDisposable = null;
                     if (sourceEnded) c(err)
@@ -339,7 +340,10 @@ exports.switchMap = (makeSource, combineResults) => inputSource => (n, c) => {
             if (!currDisposable) c(err);
         }
     )
-    return close
+    return () => {
+        dispose()
+        currDisposable = (currDisposable && currDisposable(), null)
+    }
 }
 exports.switchMapTo = (innerSource, combineResults) => exports.switchMap(d => innerSource, combineResults)
 exports.scan = (...args) => {
@@ -347,25 +351,24 @@ exports.scan = (...args) => {
     const hasSeed = args.length === 2
     return source => (n, c) => {
         let aac = seed
-        const $n = (d, s) => n(aac = reducer(aac, d), s)
-        let _n = (d, s) => (n(aac = d, s), _n = $n)
-        return source(hasSeed ? $n : (d, s) => _n(d, s), c)
+        const $n = d => n(aac = reducer(aac, d))
+        let _n = d => (n(aac = d), _n = $n)
+        return source(hasSeed ? $n : d => _n(d), c)
     }
 }
 exports.bufferTime = miniseconds => source => (n, c) => {
     const buffer = []
-    const id = setInterval(() => (n(buffer.concat(), close), buffer.length = 0), miniseconds)
-    const close = () => (clearInterval(id), defer())
+    const id = setInterval(() => (n(buffer.concat()), buffer.length = 0), miniseconds)
     const defer = source(d => buffer.push(d), err => {
-        close();
+        clearInterval(id)
         if (!err) n(buffer, close)
         c(err)
     })
-    return close
+    return () => (clearInterval(id), defer())
 }
 
 // UTILITY 
-exports.tap = f => source => (n, c) => source((d, s) => (f(d), n(d, s)), c);
+exports.tap = f => source => (n, c) => source(d => (f(d), n(d)), c);
 exports.delay = delay => source => (n, c) => {
     let defer = () => clearTimeout(id)
     const id = setTimeout(() => defer = source(n, c), delay)

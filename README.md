@@ -31,63 +31,19 @@ A standard for creating reactive program library faster and more lightweight tha
 
 #### 激活Callbag
 - 调用Callbag就是激活Callbag,调用Callbag的时候必须传入两个函数，且只能传入两个函数
-- 第一个函数next，是形如`(data:any,stop:Function)=>void`的函数，data是传过来的数据，stop是传过来的终止函数，和Callbag返回的函数的功能一致，只是为了更方便在接收到数据时及时终止Callbag的数据发送
+- 第一个函数next，是形如`(data:any)=>void`的函数，data是传过来的数据
 - Callbag每次调用都会激活一个新的数据流
 
 #### 终止Callbag数据流
 - Callbag一旦激活，就变成了一个终止函数（Callbag的返回值），调用该终止函数就会使得Callbag停止发送数据
 - Callbag终止函数允许调用多次，但不会影响程序的行为
 - Callbag一旦终止，就永远不会，且不能再发送数据
-- Callbag发送数据的时候会带上stop函数，功能同终止函数
 
 #### Callbag完成事件
 - Callbag数据发送完成后，调用complete函数
 - 如果数据传输出错，将错误信息传入complete函数
 - 允许多次调用complete函数，但不能改变程序的行为（由subscribe封装，保证最终只调用一次外部传入的complete回调）
 - 上一条的目的是为了使得扩展库代码更加简练，所以subscribe建议采用标准库的写法
-
-### 实现示例
-
-> 创建一个数据源Callbag 激活后发送数字1，2，3，然后完成
-```js
-const cb123 = (n,c)=>{
-    const stop = ()=>c=null
-    n(1,stop)
-    c && n(2,stop)
-    c && n(3,stop)
-    c && c()
-    return stop
-}
-```
-
-> 激活cb123,然后打印接受的数字，完成后打印‘complete’
-```js
-const log123 = cb123((d,s)=>{
-    console.log(d)
-},err=>{
-    console.log('complete')
-})
-```
-
-> 编写一个Deliver,在收到2的时候终止source,并完成数据流
-```js
-const stop123 = source=>(n,c)=>{
-   return source((d,s)=>{
-       if(d===2){s();c()}
-       else n(d,s)
-   },c)
-}
-```
-
-> 激活带有stop123的cb123,然后打印接受的数字，完成后打印‘complete’
-
-```js
-stop123(cb123)((d,s)=>{
-    console.log(d)
-},err=>{
-    console.log('complete')
-})
-```
 
 
 ### 部分标准库源码实例
@@ -101,24 +57,24 @@ exports.pipe = (first, ...cbs) => cbs.reduce((aac, c) => c(aac), first);
 
 exports.subscribe = (n, e = noop, c = noop) => source => source(n, once(err => err ? e(err) : c()))
 
-exports.fromArray = array => (n, c) => {
-    let pos = 0;
-    const l = array.length;
-    const close = () => (pos = l, c = noop);
-    while (pos < l) n(array[pos++], close)
-    c()
-    return close;
+exports.interval = period => n => {
+    let i = 0;
+    const id = setInterval(() => n(i++), period)
+    return () => clearInterval(id)
 }
 
 exports.never = n => noop
 
-exports.takeWhile = f => source => (n, c) => source((d, s) => f(d) ? n(d, s) : (s(), c()), c)
+exports.takeWhile = f => source => (n, c) => {
+    const defer = source(d => f(d) ? n(d) : (defer(), c()), c);
+    return defer
+}
 
-exports.filter = f => source => (n, c) => source((d, s) => f(d) && n(d, s), c)
+exports.filter = f => source => (n, c) => source(d => f(d) && n(d), c)
 
-exports.map = f => source => (n, c) => source((d, s) => n(f(d), s), c);
+exports.map = f => source => (n, c) => source(d => n(f(d)), c);
 
-exports.tap = f => source => (n, c) => source((d, s) => (f(d), n(d, s)), c);
+exports.tap = f => source => (n, c) => source(d => (f(d), n(d)), c);
 ```
 
 ## 响应式编程的深层思考

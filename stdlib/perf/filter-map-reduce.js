@@ -36,7 +36,7 @@ suite.add('rxlite', function(deferred) {
                 callbagX.fromArray(a),
                 callbagX.filter(even),
                 callbagX.map(add1),
-                callbagX.scan(sum, 0)
+                callbagX.reduce(sum, 0)
             )
         );
     }, options)

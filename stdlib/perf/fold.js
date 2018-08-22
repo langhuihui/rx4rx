@@ -35,7 +35,7 @@ suite.add('rxlite', function(deferred) {
             callbagX.pipe(
                 callbagX.fromArray(a),
                 callbagX.scan(sum, 0),
-                callbagX.scan(passthrough, 0),
+                callbagX.reduce(passthrough, 0),
             )
         );
     }, options)
@@ -59,9 +59,6 @@ suite.add('rxlite', function(deferred) {
     }, options)
     .add('kefir', function(deferred) {
         runners.runKefir(deferred, kefirFromArray(a).scan(sum, 0).scan(passthrough, 0).last());
-    }, options)
-    .add('bacon', function(deferred) {
-        runners.runBacon(deferred, bacon.fromArray(a).scan(0, sum).reduce(0, passthrough));
     }, options)
     .add('highland', function(deferred) {
         runners.runHighland(deferred, highland(a).scan(0, sum).reduce(0, passthrough));

@@ -1,22 +1,30 @@
 {
-  "name": "rxlite",
-  "version": "1.0.0",
-  "description": "a library for implemention of rxlite-std",
-  "main": "index.js",
-  "scripts": {
-    "test": "node test/index.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/langhuihui/rxlite-std.git"
-  },
-  "keywords": [
-    "rx"
-  ],
-  "author": "dexter",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/langhuihui/rxlite-std/issues"
-  },
-  "homepage": "https://github.com/langhuihui/rxlite-std#readme"
+    "name": "rxlite",
+    "version": "1.0.0",
+    "description": "a library for implemention of rxlite-std",
+    "main": "index.js",
+    "scripts": {
+        "build": "rollup -c",
+        "build:min": "uglifyjs dist/rxlite.js -c \"warnings=false\" -m > dist/rxlite.min.js",
+        "test": "node test/index.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/langhuihui/rxlite-std.git"
+    },
+    "keywords": [
+        "rx"
+    ],
+    "author": "dexter",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/langhuihui/rxlite-std/issues"
+    },
+    "homepage": "https://github.com/langhuihui/rxlite-std#readme",
+    "devDependencies": {
+        "babel-core": "^6.26.3",
+        "rollup-plugin-babel": "^3.0.7",
+        "rollup-plugin-buble": "^0.19.2",
+        "rollup-plugin-node-resolve": "^3.3.0"
+    }
 }

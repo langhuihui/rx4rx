@@ -112,7 +112,7 @@ suite.add('rxlite', function(deferred) {
         var dec = source.pipe(filter(isNegative), map(returnMinus1));
         var count = rxjs.merge(inc, dec).pipe(scan(addXY, 0));
         var label = rxjs.of('initial', 'Count is ');
-        var view = rxjs.combineLatest(label, count, renderWithArgs);
+        var view = rxjs.combineLatest(label, count).pipe(map(renderWithArgs));
         runners.runRx6(deferred, view);
     }, options)
     // .add('bacon', function(deferred) {
