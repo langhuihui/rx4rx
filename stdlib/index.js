@@ -62,21 +62,25 @@ exports.reusePipe = (...args) => {
         }
     }
 }
-
-//SUBSCRIBER
+exports.toPromise = n => source => new Promise((resolve, reject) => source(n, err => err ? reject(err) : resolve()))
+    //SUBSCRIBER
 exports.subscribe = (n, e = noop, c = noop) => source => source(n, once(err => err ? e(err) : c()))
+const _subjectPrototype = {
+    next: noop,
+    complete: noop,
+    error(err) {
+        this.complete(err)
+    },
+    rx(n, c) {
+        this.next = n
+        this.complete = c
+    }
+}
 
 //CREATION
-exports.subject = () => {
-    let next = noop;
-    let complete = noop;
-    const _subject = exports.share((n, c) => {
-        next = n;
-        complete = c
-    })
-    _subject.next = d => next(d, noop)
-    _subject.complete = () => complete()
-    _subject.error = err => complete(err)
+exports.subject = source => {
+    const _subject = Object.setPrototypeOf(exports.share((n, c) => _subject.rx(n, c)), _subjectPrototype)
+    if (source) source(_subject.next, _subject.complete)
     return _subject
 }
 
@@ -310,7 +314,16 @@ exports.last = (condition = () => true, defaultValue) => source => (n, c, last =
 exports.count = f => source => _result((i, d) => f(d) ? i++ : i, 0, source)
 exports.max = source => _result((max, d) => !(d < max) ? d : max, NaN, source)
 exports.min = source => _result((min, d) => !(d > min) ? d : min, NaN, source)
-exports.reduce = (...args) => source => _result((acc, d) => d, void 0, exports.scan(...args)(source))
+exports.reduce = (...args) => {
+    const [reducer, seed] = args
+    const hasSeed = args.length === 2
+    return source => (n, c) => {
+        const $n = d => $n.aac = reducer($n.aac, d)
+        $n.aac = seed
+        let _n = d => ($n.aac = d, _n = $n)
+        return source(hasSeed ? $n : d => _n(d), err => err ? c(err) : (n($n.aac), c()))
+    }
+}
 
 //TRANSFORMATION
 exports.pluck = s => source => (n, c) => source(d => n(d[s]), c)
@@ -350,9 +363,9 @@ exports.scan = (...args) => {
     const [reducer, seed] = args
     const hasSeed = args.length === 2
     return source => (n, c) => {
-        let aac = seed
-        const $n = d => n(aac = reducer(aac, d))
-        let _n = d => (n(aac = d), _n = $n)
+        const $n = d => n($n.aac = reducer($n.aac, d))
+        $n.aac = seed
+        let _n = d => (n($n.aac = d), _n = $n)
         return source(hasSeed ? $n : d => _n(d), c)
     }
 }

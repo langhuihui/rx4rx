@@ -24,6 +24,7 @@
         "lodash": "4.17.x",
         "most": "1.1.x",
         "rxjs": "^6.2.2",
+        "v8-profiler": "^5.7.0",
         "xstream": "11"
     },
     "devDependencies": {

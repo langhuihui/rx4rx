@@ -1,4 +1,6 @@
 var kefir = require('kefir');
+const profiler = require('v8-profiler')
+profiler.startProfiling('CPU profile')
 kefir.DEPRECATION_WARNINGS = false;
 
 exports.runSuite = runSuite;
@@ -55,6 +57,11 @@ function logStart() {
 
 function logComplete() {
     console.log('-----------------------------------------------');
+    const fs = require('fs')
+    const profile = profiler.stopProfiling()
+    profile.export()
+        .pipe(fs.createWriteStream(`cpuprofile-${Date.now()}.cpuprofile`))
+        .on('finish', () => profile.delete())
 }
 
 function runSuite(suite) {
