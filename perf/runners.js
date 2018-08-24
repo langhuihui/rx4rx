@@ -82,14 +82,20 @@ function runMost(deferred, mostPromise) {
 }
 
 function runCallbagX(deferred, rxStream) {
-    rxStream(noop, error => {
-        if (error) {
+    require('../highlib').subscribe(noop, error => {
             deferred.benchmark.emit({ type: 'error', error });
-            deferred.resolve(e);
-        } else {
+            deferred.resolve(error);
+        }, () => {
             deferred.resolve();
-        }
-    })
+        })(rxStream)
+        // rxStream(noop, error => {
+        //     if (error) {
+        //         deferred.benchmark.emit({ type: 'error', error });
+        //         deferred.resolve(e);
+        //     } else {
+        //         deferred.resolve();
+        //     }
+        // })
 }
 
 function runRx6(deferred, rxStream) {

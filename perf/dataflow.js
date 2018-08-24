@@ -1,5 +1,5 @@
 var Benchmark = require('benchmark');
-var callbagX = require('../index');
+var callbagX = require('../highlib');
 var callbag = require('callbag-basics')
 var xs = require('xstream').default;
 var most = require('most');

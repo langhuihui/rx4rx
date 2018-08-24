@@ -1,6 +1,6 @@
 var Benchmark = require('benchmark');
 var callbag = require('callbag-basics');
-var callbagX = require('../')
+var callbagX = require('../highlib')
 var xs = require('xstream').default;
 var most = require('most');
 var rxOp = require('rxjs/operators');
@@ -44,17 +44,11 @@ var options = {
         e.currentTarget.failure = e.error;
     }
 };
-var merge = sources => (n, c) => {
-    let nLife = sources.length;
-    const _c = err => --nLife === 0 && c(err);
-    const defers = sources.map(source => source(n, _c))
-    return _ => defers.forEach(defer => defer(_))
-}
 suite.add('rxlite', function(deferred) {
         var streams = a.map(callbagX.fromArray);
         runners.runCallbagX(deferred,
             callbagX.pipe(
-                merge(streams),
+                callbagX.mergeArray(streams),
                 callbagX.reduce(sum, 0)
             )
         );
