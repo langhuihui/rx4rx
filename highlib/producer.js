@@ -1,5 +1,11 @@
-const { Sink, noop, asap } = require('./common')
-const { share } = require('./combination')
+const {
+    Sink,
+    noop,
+    asap
+} = require('./common')
+const {
+    share
+} = require('./combination')
 
 exports.subject = source => {
     const defer = share(sink => {
@@ -10,15 +16,12 @@ exports.subject = source => {
 }
 
 exports.fromArray = array => sink => {
-    let pos = 0,
-        l = array.length
     asap(() => {
-        while (pos < l) sink.next(array[pos++])
-        if (sink) sink.complete()
-    }, () => {
-        pos = l;
-        sink = null;
-    })
+        sink.pos = 0
+        const l = array.length
+        while (sink.pos < l && !sink.disposed) sink.next(array[sink.pos++])
+        sink.complete()
+    }, () => sink.dispose())
 }
 exports.of = (...items) => exports.fromArray(items)
 exports.interval = period => sink => {
@@ -42,12 +45,12 @@ exports.fromEventPattern = (add, remove) => sink => {
 exports.fromEvent = (target, name) => typeof target.on == 'function' ? exports.fromEventPattern(handler => target.on(name, handler), handler => target.off(name, handler)) : exports.fromEventPattern(handler => target.addEventListener(name, handler), handler => target.removeEventListener(name, handler))
 exports.range = (start, count) => (sink, pos = start, end = count + start) => asap(() => {
     while (pos < end) sink.next(pos++)
-    sink && sink.complete()
-}, () => (pos = end, sink = null))
+    sink.complete()
+}, () => (pos = end, sink.dispose()))
 
 exports.fromPromise = source => sink => {
-    source.then(d => (sink && sink.next(d), sink && sink.complete())).catch(e => sink && sink.complete(e))
-    return () => sink = null
+    source.then(d => (sink.next(d), sink.complete())).catch(e => sink.complete(e))
+    return () => sink.dispose()
 }
 exports.fromIterable = source => sink => {
     const iterator = source[Symbol.iterator]()
@@ -56,18 +59,21 @@ exports.fromIterable = source => sink => {
     asap(() => {
         try {
             while (!done) {
-                ({ value, done } = iterator.next(rv))
+                ({
+                    value,
+                    done
+                } = iterator.next(rv))
                 rv = sink.next(value)
             }
-            if (sink) sink.complete()
+            sink.complete()
         } catch (e) {
-            if (sink) sink.complete(e)
+            sink.complete(e)
         }
     })
     return () => {
         iterator.return(_);
         done = true;
-        sink = null
+        sink.dispose()
     }
 }
 exports.from = source => {
@@ -83,13 +89,13 @@ exports.from = source => {
     }
 }
 exports.bindCallback = (call, thisArg, ...args) => sink => asap(() => {
-    const inArgs = args.concat((...rargs) => (sink && sink.next(rargs.length > 1 ? rargs : rargs[0]), sink && sink.complete()));
+    const inArgs = args.concat((...rargs) => (sink.next(rargs.length > 1 ? rargs : rargs[0]), sink.complete()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
-}, () => sink = null)
+}, () => sink.dispose())
 exports.bindNodeCallback = (call, thisArg, ...args) => sink => asap(() => {
-    const inArgs = args.concat((err, ...rargs) => (sink && err && sink.complete(err)) || (sink && sink.next(rargs.length > 1 ? rargs : rargs[0]), sink && sink.complete()));
+    const inArgs = args.concat((err, ...rargs) => (err && sink.complete(err)) || (sink.next(rargs.length > 1 ? rargs : rargs[0]), sink.complete()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
-}, () => sink = null)
+}, () => sink.dispose())
 exports.never = sink => noop
 exports.throwError = e => sink => (sink.complete(e), noop)
 exports.empty = exports.throwError()

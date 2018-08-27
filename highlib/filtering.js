@@ -1,31 +1,31 @@
-const { Sink } = require('./common')
+const {
+    Sink
+} = require('./common')
 class Filter extends Sink {
-    constructor(f) {
-        super()
+    init(f) {
         this.f = f
     }
     next(data) {
-        if (this.f(data)) this._next(data)
+        if (this.f(data)) this.sink.next(data)
     }
 }
-exports.filter = f => source => sink => source(sink.warp(Filter, f))
+exports.filter = f => source => sink => source(new Filter(sink, f))
 
 class Ignore extends Sink {
     next() {}
 }
-exports.ignoreElements = source => sink => source(sink.warp(Ignore))
+exports.ignoreElements = source => sink => source(new Ignore(sink))
 
 class Take extends Sink {
-    constructor(count) {
-        super()
+    init(count) {
         this.count = count
     }
     next(data) {
-        this._next(data)
+        this.sink.next(data)
         if (--this.count === 0) {
             this.defer()
-            this._complete()
+            super.complete()
         }
     }
 }
-exports.take = count => source => sink => source(sink.warp(Take, count))
+exports.take = count => source => sink => new Take(sink, count).subscribe(source)

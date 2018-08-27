@@ -1,6 +1,6 @@
 function noop() {}
 exports.noop = noop
-    //第一次调用有效
+//第一次调用有效
 exports.once = f => (...args) => {
     if (f) {
         let r = f(...args)
@@ -10,11 +10,12 @@ exports.once = f => (...args) => {
 }
 
 class Sink {
-    _next(data) {
-        this.sink.next(data)
+    constructor(sink, ...args) {
+        this.init(...args)
+        this.sink = sink
     }
-    _complete(err) {
-        this.sink.complete(err)
+    init() {
+
     }
     next(data) {
         if (this.sink) this.sink.next(data)
@@ -22,19 +23,29 @@ class Sink {
     complete(err) {
         if (this.sink) {
             this.sink.complete(err)
-            this.complete = noop
         }
+        this.dispose()
     }
     error(err) {
         this.complete(err)
     }
-    warp(Class, ...args) {
-        var warp = new Class(...args)
-        warp.sink = this
-        return warp
+    dispose() {
+        this.complete = noop
+        this.next = noop
+        this.dispose = noop
+        this.subscribe = noop
+        this.subscribes = noop
+        this.disposed = true
     }
-    get source() {
-        return source => source(this)
+    defer() {
+
+    }
+    subscribes(sources) {
+        const defers = sources.map(source => source(this))
+        return this.defer = () => defers.forEach(defer => defer())
+    }
+    subscribe(source) {
+        return this.defer = source(this)
     }
 }
 exports.Sink = Sink
@@ -76,7 +87,7 @@ function asap(task, defer) {
 exports.asap = asap;
 
 class Result extends Sink {
-    constructor(f, aac) {
+    init(f, aac) {
         this.f = f
         this.aac = aac
     }
@@ -88,4 +99,4 @@ class Result extends Sink {
         this.sink.complete(err)
     }
 }
-exports.result = (f, aac, source) => sink => source(sink.warp(Result, f, aac))
+exports.result = (f, aac, source) => sink => source(new Result(sink, f, aac))

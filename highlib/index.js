@@ -1,4 +1,6 @@
-const { Sink } = require('./common')
+const {
+    Sink
+} = require('./common')
 exports.pipe = (first, ...cbs) => cbs.reduce((aac, c) => c(aac), first);
 //在pipe的基础上增加了start和stop方法，方便反复调用
 exports.reusePipe = (...args) => {
@@ -11,7 +13,7 @@ exports.reusePipe = (...args) => {
     }
 }
 class ToPromise extends Sink {
-    constructor(resolve, reject) {
+    init(resolve, reject) {
         this.resolve = resolve
         this.reject = reject
     }
@@ -22,18 +24,17 @@ class ToPromise extends Sink {
         err ? this.reject(err) : this.resolve(this.data)
     }
 }
-exports.toPromise = source => new Promise((resolve, reject) => source(new ToPromise(resolve, reject)))
+exports.toPromise = source => new Promise((resolve, reject) => source(new ToPromise(null, resolve, reject)))
 class Subscribe extends Sink {
-    constructor(n, e, c) {
-        super()
+    init(n, e, c) {
         this.next = n
-        this.complete = function(err) {
+        this.complete = function (err) {
             err ? e(err) : c()
         }
     }
 }
 //SUBSCRIBER
-exports.subscribe = (n, e = noop, c = noop) => new Subscribe(n, e, c).source
+exports.subscribe = (n, e = noop, c = noop) => source => source(new Subscribe(null, n, e, c))
 
 
 //FILTERING
@@ -68,7 +69,10 @@ exports.skipWhile = f => source => (n, c) => {
     let _n = d => (f(d) || (_n = n, n(d)));
     return source(d => _n(d), c)
 }
-const defaultThrottleConfig = { leading: true, trailing: false }
+const defaultThrottleConfig = {
+    leading: true,
+    trailing: false
+}
 
 exports.throttle = (durationSelector, config = defaultThrottleConfig) => source => (n, c) => {
     let _throttled = false;
@@ -102,7 +106,10 @@ exports.throttle = (durationSelector, config = defaultThrottleConfig) => source 
     }, err => err ? c(err) : (throttleDone(), c()))
     return () => (_defer(), defer())
 }
-const defaultAuditConfig = { leading: false, trailing: true }
+const defaultAuditConfig = {
+    leading: false,
+    trailing: true
+}
 exports.audit = durationSelector => exports.throttle(durationSelector, defaultAuditConfig)
 
 exports.elementAt = (count, defaultValue) => source => (n, c, result = defaultValue, _count = count) => {

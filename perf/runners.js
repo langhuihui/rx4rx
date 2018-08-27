@@ -1,6 +1,8 @@
 var kefir = require('kefir');
-const profiler = require('v8-profiler')
-profiler.startProfiling('CPU profile')
+const inspector = require('inspector');
+const fs = require('fs');
+const session = new inspector.Session();
+session.connect();
 kefir.DEPRECATION_WARNINGS = false;
 
 exports.runSuite = runSuite;
@@ -50,18 +52,27 @@ function logResults(e) {
     }
 }
 
+
 function logStart() {
     console.log(this.name);
     console.log('-----------------------------------------------');
+    session.post('Profiler.enable', () => {
+        session.post('Profiler.start', () => {
+          // invoke business logic under measurement here...
+      
+        });
+      });
 }
 
 function logComplete() {
     console.log('-----------------------------------------------');
-    const fs = require('fs')
-    const profile = profiler.stopProfiling()
-    profile.export()
-        .pipe(fs.createWriteStream(`cpuprofile-${Date.now()}.cpuprofile`))
-        .on('finish', () => profile.delete())
+     // some time later...
+     session.post('Profiler.stop', (err, { profile }) => {
+        // write profile to disk, upload, etc.
+        if (!err) {
+          fs.writeFileSync('./profile.cpuprofile', JSON.stringify(profile));
+        }
+      });
 }
 
 function runSuite(suite) {

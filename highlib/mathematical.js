@@ -1,27 +1,27 @@
-const { Sink, result } = require('./common')
+const {
+    Sink,
+    result
+} = require('./common')
 exports.count = f => source => result((i, d) => f(d) ? i++ : i, 0, source)
 exports.max = source => result((max, d) => !(d < max) ? d : max, NaN, source)
 exports.min = source => result((min, d) => !(d > min) ? d : min, NaN, source)
 class Reduce extends Sink {
-    constructor(args) {
-        super()
-        const [reducer, seed] = args
-        const hasSeed = args.length === 2
+    init(hasSeed, f, seed) {
+        this.f = f
         this.aac = seed
-        this.reducer = reducer
         if (!hasSeed) {
             this.next = d => {
                 delete this.next
-                this.sink.next(this.aac = d)
+                super.next(this.aac = d)
             }
         }
     }
     next(data) {
-        this._next(this.aac = this.reducer(this.aac, data))
+        this.sink.next(this.aac = this.f(this.aac, data))
     }
     complete(err) {
-        if (!err) this._next(this.aac)
-        this._complete(err)
+        if (!err) super.next(this.aac)
+        super.complete(err)
     }
 }
-exports.reduce = (...args) => source => sink => source(sink.warp(Reduce, args))
+exports.reduce = (...args) => source => sink => source(new Reduce(sink, args.length === 2, ...args))
