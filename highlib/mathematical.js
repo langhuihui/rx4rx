@@ -17,7 +17,9 @@ class Reduce extends Sink {
         }
     }
     next(data) {
-        this.sink.next(this.aac = this.f(this.aac, data))
+        const f = this.f
+        this.aac = f(this.aac, data)
+        this.sink.next(this.aac)
     }
     complete(err) {
         if (!err) super.next(this.aac)

@@ -74,18 +74,18 @@ suite.add('rxlite', function(deferred) {
                 rxOp.scan(sum, 0))
         )
     }, options)
-    .add('kefir', function(deferred) {
-        runners.runKefir(deferred, kefirFromArray(a).map(add1).filter(odd).map(add1).map(add1).filter(even).scan(sum, 0).last());
-    }, options)
-    .add('highland', function(deferred) {
-        runners.runHighland(deferred, highland(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(0, sum));
-    }, options)
-    .add('lodash', function() {
-        return lodash(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
-    })
-    .add('Array', function() {
-        return a.map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
-    })
+    // .add('kefir', function(deferred) {
+    //     runners.runKefir(deferred, kefirFromArray(a).map(add1).filter(odd).map(add1).map(add1).filter(even).scan(sum, 0).last());
+    // }, options)
+    // .add('highland', function(deferred) {
+    //     runners.runHighland(deferred, highland(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(0, sum));
+    // }, options)
+    // .add('lodash', function() {
+    //     return lodash(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
+    // })
+    // .add('Array', function() {
+    //     return a.map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
+    // })
 
 runners.runSuite(suite);
 

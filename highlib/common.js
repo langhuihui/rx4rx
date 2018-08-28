@@ -1,6 +1,6 @@
 function noop() {}
 exports.noop = noop
-//第一次调用有效
+    //第一次调用有效
 exports.once = f => (...args) => {
     if (f) {
         let r = f(...args)
@@ -46,6 +46,10 @@ class Sink {
     }
     subscribe(source) {
         return this.defer = source(this)
+    }
+    subspose() {
+        this.defer = source(this)
+        return () => this.dispose()
     }
 }
 exports.Sink = Sink

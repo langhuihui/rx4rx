@@ -16,6 +16,12 @@ exports.subject = source => {
 }
 
 exports.fromArray = array => sink => {
+    // asap(() => {
+    //         let pos = 0
+    //         const l = array.length
+    //         while (pos < l && !sink.disposed) sink.next(array[pos++])
+    //         sink.complete()
+    //     }, () => sink.dispose())
     asap(() => {
         sink.pos = 0
         const l = array.length

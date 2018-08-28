@@ -374,7 +374,7 @@ exports.bufferTime = miniseconds => source => (n, c) => {
     const id = setInterval(() => (n(buffer.concat()), buffer.length = 0), miniseconds)
     const defer = source(d => buffer.push(d), err => {
         clearInterval(id)
-        if (!err) n(buffer, close)
+        if (!err) n(buffer)
         c(err)
     })
     return () => (clearInterval(id), defer())
