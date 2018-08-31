@@ -280,7 +280,7 @@ exports.throttle = (durationSelector, config = defaultThrottleConfig) => source 
         if (_throttled) _defer()
         _throttled = false
         if (config.trailing) {
-            send(last, noop)
+            send(last)
         }
     }
     const throttle = d => (_throttled = true, _defer = durationSelector(d)(throttleDone, throttleDone))
@@ -297,8 +297,8 @@ exports.throttle = (durationSelector, config = defaultThrottleConfig) => source 
 const defaultAuditConfig = { leading: false, trailing: true }
 exports.audit = durationSelector => exports.throttle(durationSelector, defaultAuditConfig)
 exports.filter = f => source => (n, c) => source(d => f(d) && n(d), c)
-exports.elementAt = (count, defaultValue) => source => (n, c, result = defaultValue, _count = count) => {
-    const defer = source(d => _count-- === 0 && ((result = d), defer(), n(d), c()), err => err || last === void 0 && (err = getError('no elements in sequence')) ? c(err) : c());
+exports.elementAt = (count, defaultValue) => source => (n, c, last = defaultValue, _count = count) => {
+    const defer = source(d => _count-- === 0 && ((last = d), defer(), n(d), c()), err => err || last === void 0 && (err = getError('no elements in sequence')) ? c(err) : c());
     return defer
 }
 exports.find = f => source => exports.take(1)(exports.skipWhile(d => !f(d))(source))
