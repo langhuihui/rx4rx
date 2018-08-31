@@ -118,9 +118,9 @@ exports.combineLatest = (...sources) => sink => {
         nRun: 0
     }
     const array = new Array(nTotal)
-    const defers = new Array(nTotal)
-    for (let i = 0; i < nTotal; ++i) defers[i] = sources[i](new CombineLatest(sink, i, array, context))
-    // const defers = sources.forEach((source, i) => source(new CombineLatest(sink, i, array, context)))
+    // const defers = new Array(nTotal)
+    // for (let i = 0; i < nTotal; ++i) defers[i] = sources[i](new CombineLatest(sink, i, array, context))
+    const defers = sources.forEach((source, i) => source(new CombineLatest(sink, i, array, context)))
     return () => defers.forEach(defer => defer())
 }
 exports.startWith = (...xs) => inputSource => (sink, pos, l = xs.length) =>
