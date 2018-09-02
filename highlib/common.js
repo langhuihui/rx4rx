@@ -1,6 +1,7 @@
 function noop() {}
 exports.noop = noop
-    //第一次调用有效
+exports.stop = Symbol('stop')
+//第一次调用有效
 exports.once = f => (...args) => {
     if (f) {
         let r = f(...args)
@@ -11,45 +12,66 @@ exports.once = f => (...args) => {
 
 class Sink {
     constructor(sink, ...args) {
-        this.init(...args)
+        this.defers = new Set()
         this.sink = sink
+        this.init(...args)
+        if (sink) this.disposePass = true
     }
     init() {
 
     }
+    set disposePass(value) {
+        if (value)
+            this.sink.defers.add(this)
+        else this.sink.defers.delete(this)
+    }
     next(data) {
-        if (this.sink) this.sink.next(data)
+        this.sink && this.sink.next(data)
     }
     complete(err) {
-        if (this.sink) {
-            this.sink.complete(err)
-        }
-        this.dispose()
+        this.sink && this.sink.complete(err)
+        this.dispose(false)
     }
     error(err) {
         this.complete(err)
     }
-    dispose() {
+    dispose(defer = true) {
+        this.disposed = true
         this.complete = noop
         this.next = noop
         this.dispose = noop
-        this.subscribe = noop
-        this.subscribes = noop
-        this.disposed = true
+        this.subscribes = this.subscribe = noop
+        defer && this.defer() //销毁时终止事件源
     }
-    defer() {
-
-    }
-    subscribes(sources) {
-        const defers = sources.map(source => source(this))
-        return this.defer = () => defers.forEach(defer => defer())
+    defer(add) {
+        if (add) {
+            this.defers.add(add)
+        } else {
+            this.defers.forEach(defer => {
+                switch (true) {
+                    case defer.dispose:
+                        defer.dispose()
+                        break;
+                    case typeof defer == 'function':
+                        defer()
+                        break
+                    case defer.length > 0:
+                        let [f, thisArg, ...args] = defer
+                        if (f.call)
+                            f.call(thisArg, ...args)
+                        else f(...args)
+                        break
+                }
+            })
+            this.defers.clear()
+        }
     }
     subscribe(source) {
-        return this.defer = source(this)
+        source(this)
+        return this
     }
-    subspose() {
-        this.defer = source(this)
-        return () => this.dispose()
+    subscribes(sources) {
+        sources.forEach(source => source(this))
     }
 }
 exports.Sink = Sink
@@ -90,17 +112,4 @@ function asap(task, defer) {
 }
 exports.asap = asap;
 
-class Result extends Sink {
-    init(f, aac) {
-        this.f = f
-        this.aac = aac
-    }
-    next(data) {
-        this.aac = this.f(aac, data)
-    }
-    complete(err) {
-        if (!err) this.sink.next(this.aac)
-        this.sink.complete(err)
-    }
-}
-exports.result = (f, aac, source) => sink => source(new Result(sink, f, aac))
+exports.deliver = Class => (...args) => source => sink => source(new Class(sink, ...args))

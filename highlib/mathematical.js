@@ -1,10 +1,7 @@
 const {
-    Sink,
-    result
+    Sink
 } = require('./common')
-exports.count = f => source => result((i, d) => f(d) ? i++ : i, 0, source)
-exports.max = source => result((max, d) => !(d < max) ? d : max, NaN, source)
-exports.min = source => result((min, d) => !(d > min) ? d : min, NaN, source)
+
 class Reduce extends Sink {
     init(hasSeed, f, seed) {
         this.f = f
@@ -12,18 +9,20 @@ class Reduce extends Sink {
         if (!hasSeed) {
             this.next = d => {
                 delete this.next
-                super.next(this.aac = d)
+                this.aac = d
             }
         }
     }
     next(data) {
         const f = this.f
         this.aac = f(this.aac, data)
-        this.sink.next(this.aac)
     }
     complete(err) {
-        if (!err) super.next(this.aac)
+        err || this.sink.next(this.aac)
         super.complete(err)
     }
 }
 exports.reduce = (...args) => source => sink => source(new Reduce(sink, args.length === 2, ...args))
+exports.count = f => exports.reduce((aac, c) => f(c) ? aac + 1 : aac, 0)
+exports.max = exports.reduce(Math.max)
+exports.min = exports.reduce(Math.min)

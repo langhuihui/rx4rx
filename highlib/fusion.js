@@ -1,16 +1,15 @@
 const {
     Sink
 } = require('./common')
-class FusionSink extends Sink {
-    compose(g, f) {
-        return x => g(f(x))
-    }
-    and(a, b) {
-        return x => a(x) && b(x)
-    }
+
+function compose(g, f) {
+    return x => g(f(x))
 }
-exports.FusionSink = FusionSink
-class Filter extends FusionSink {
+
+function and(a, b) {
+    return x => a(x) && b(x)
+}
+class Filter extends Sink {
     init(f) {
         this.f = f
     }
@@ -18,18 +17,15 @@ class Filter extends FusionSink {
         const f = this.f
         f(data) && this.sink.next(data)
     }
-    fusionMap(f) {
-        return new MapSink(this, f)
-    }
     fusionFilter(f) {
-        this.f = this.and(f, this.f)
+        this.f = and(f, this.f)
         return this
-            // return new Filter(this.sink, this.and(f, this.f))
+        // return new Filter(this.sink, this.and(f, this.f))
     }
 }
 exports.Filter = Filter
 
-class FilterMapSink extends FusionSink {
+class FilterMapSink extends Sink {
     init(f, m) {
         this.f = f
         this.m = m
@@ -40,15 +36,12 @@ class FilterMapSink extends FusionSink {
         f(data) && this.sink.next(m(data))
     }
     fusionFilter(f) {
-        this.f = this.and(f, this.f)
+        this.f = and(f, this.f)
         return this
-            // return new Filter(this, f)
-    }
-    fusionMap(f) {
-        return new MapSink(this, f)
+        // return new Filter(this, f)
     }
 }
-class MapSink extends FusionSink {
+class MapSink extends Sink {
     init(f) {
         this.f = f
     }
@@ -57,12 +50,14 @@ class MapSink extends FusionSink {
         this.sink.next(f(data))
     }
     fusionFilter(f) {
-        return new FilterMapSink(this, f, this.f)
+        this.disposePass = false
+        this.dispose(false)
+        return new FilterMapSink(this.sink, f, this.f)
     }
     fusionMap(f) {
-        this.f = this.compose(this.f, f)
+        this.f = compose(this.f, f)
         return this
-            // return new MapSink(this.sink, this.compose(this.f, f))
+        // return new MapSink(this.sink, this.compose(this.f, f))
     }
 }
 exports.MapSink = MapSink

@@ -1,13 +1,14 @@
 const {
     Sink,
-    result
+    deliver
 } = require('./common')
 const {
-    FusionSink,
     Filter
 } = require('./fusion')
-
-exports.filter = f => source => sink => source(sink instanceof FusionSink ? sink.fusionFilter(f) : new Filter(sink, f))
+const {
+    reduce
+} = require('./mathematical')
+exports.filter = f => source => sink => source(sink.fusionFilter ? sink.fusionFilter(f) : new Filter(sink, f))
 
 class Ignore extends Sink {
     next() {}
@@ -22,34 +23,35 @@ class Take extends Sink {
         this.sink.next(data)
         if (--this.count === 0) {
             this.defer()
-            super.complete()
+            this.complete()
         }
     }
 }
-exports.take = count => source => sink => new Take(sink, count).subscribe(source)
+exports.take = deliver(Take)
 
+class _TakeUntil extends Sink {
+    init(sourceSink) {
+        this.sourceSink = sourceSink
+    }
+    next() {
+        //收到事件，终结两个sink
+        this.sourceSink.dispose()
+    }
+}
 class TakeUntil extends Sink {
-    init(defer) {
-        this.defer = defer
+    init(sSrc) {
+        this._takeUntil = new _TakeUntil(null, this).subscribe(sSrc)
+        //将开关事件sink纳入销毁链
+        this.defer(this._takeUntil)
     }
     complete(err) {
-        this.defer()
+        //完成事件，单方面终结开关sink
+        this._takeUntil.dispose()
         super.complete(err)
     }
 }
-class _TakeUntil extends Sink {
-    next() {
-        this.defer()
-        this.defer2()
-        this.complete()
-    }
-}
-exports.takeUntil = sSrc => src => sink => {
-    const _takeUntil = new _TakeUntil()
-    const ssd = _takeUntil.subscribe(sSrc)
-    const sd = _takeUntil.defer2 = src(new TakeUntil(sink, ssd))
-    return () => (ssd(), sd())
-}
+
+exports.takeUntil = deliver(TakeUntil)
 
 class TakeWhile extends Sink {
     init(f) {
@@ -65,51 +67,48 @@ class TakeWhile extends Sink {
         }
     }
 }
-exports.takeWhile = f => source => sink => new TakeWhile(sink, f).subscribe(source)
+exports.takeWhile = deliver(TakeWhile)
 
-exports.takeLast = count => source => result((buffer, d) => {
+exports.takeLast = count => reduce((buffer, d) => {
     buffer.push(d)
     if (buffer.length > count) buffer.shift()
     return buffer
-}, [], source)
+}, [])
 
 class Skip extends Sink {
     init(count) {
         this.count = count
     }
-    next(data) {
+    next() {
         if (--this.count === 0) {
             this.next = super.next
         }
     }
 }
-exports.skip = count => source => sink => source(new Skip(sink, count))
+exports.skip = deliver(Skip)
+
+class _SkipUntil extends Sink {
+    next() {
+        this.dispose()
+        delete this.sourceSink.next
+    }
+    init(sourceSink) {
+        this.sourceSink = sourceSink
+    }
+}
 
 class SkipUntil extends Sink {
-    init(defer) {
-        this.defer = defer
+    init(sSrc) {
+        this._skipUntil = new _SkipUntil(null, this).subscribe(sSrc)
+        this.defer(this._skipUntil)
+        this.next = noop
     }
-    next() {}
     complete(err) {
-        this.defer()
+        this._skipUntil.dispose()
         super.complete(err)
     }
 }
-class _SkipUntil extends Sink {
-    next() {
-        this.defer()
-        delete this.sink.next
-    }
-    complete() {
-
-    }
-}
-
-exports.skipUntil = sSrc => src => sink => {
-    const ssd = new _SkipUntil().subscribe(sSrc)
-    const sd = src(new SkipUntil(sink, ssd))
-    return () => (ssd(), sd())
-}
+exports.skipUntil = deliver(SkipUntil)
 
 class SkipWhile extends Sink {
     init(f) {
@@ -123,7 +122,7 @@ class SkipWhile extends Sink {
         }
     }
 }
-exports.skipWhile = f => source => sink => source(new SkipWhile(sink, f))
+exports.skipWhile = deliver(SkipWhile)
 
 const defaultThrottleConfig = {
     leading: true,
@@ -140,7 +139,7 @@ class _Throttle extends Sink {
         if (this.hasValue) {
             this.sink.next(data)
             this.isComplete = false
-            this.defer = subscribe(this.durationSelector(data))
+            this.durationSelector(data)(this)
         }
         this.hasValue = false
     }
@@ -156,23 +155,26 @@ class _Throttle extends Sink {
     }
 }
 class Throttle extends Sink {
-    init(durationSelector, config) {
+    init(durationSelector, config = defaultThrottleConfig) {
         this.durationSelector = durationSelector
         this.leading = config.leading
         this.trailing = config.trailing
         this.hasValue = false
-        this._defer = noop
     }
 
     throttle(data) {
         this._throttle.isComplete = false
         this._throttle.last = data
         this._throttle.hasValue = true
-        this._throttled.subscribe(this.durationSelector(data))
+        this.durationSelector(data)(this._throttled)
     }
     next(data) {
         if (!this._throttle || this._throttle.isComplete) {
-            if (!this._throttle) this._throttle = new _Throttle(this.sink, this.durationSelector, this.trailing)
+            if (!this._throttle) {
+                this._throttle = new _Throttle(this.sink, this.durationSelector, this.trailing)
+                this.defer(this._throttle)
+            }
+
             if (this.leading) {
                 this.sink.next(data)
                 this.throttle(data)
@@ -186,18 +188,15 @@ class Throttle extends Sink {
         }
     }
     complete(err) {
-        if (err) super.complete(err)
-        else {
-            if (this._throttle) this._throttle.complete()
+        if (err) {
+            this._throttle && this._throttle.dispose()
+            super.complete(err)
+        } else {
+            this._throttle && this._throttle.complete()
         }
     }
-    dispose() {
-        this.defer()
-        if (this._throttle) this._throttle.defer()
-        super.dispose()
-    }
 }
-exports.throttle = (durationSelector, config = defaultThrottleConfig) => source => sink => new Throttle(sink, durationSelector, config).subspose(source)
+exports.throttle = deliver(Throttle)
 const defaultAuditConfig = {
     leading: false,
     trailing: true
@@ -213,17 +212,19 @@ class ElementAt extends Sink {
         if (this.count-- === 0) {
             this.value = data
             this.defer()
-            this.sink.next(data)
             this.complete()
         }
     }
     complete(err) {
-        if (!err && this.value === void 0) err = new Error('no elements in sequence')
+        if (!err) {
+            if (this.value === void 0) err = new Error('no elements in sequence')
+            else this.sink.next(this.value)
+        }
         super.complete(err)
     }
 }
 
-exports.elementAt = (count, defaultValue) => source => new ElementAt(count, defaultValue).subscribe(source)
+exports.elementAt = deliver(ElementAt)
 exports.find = f => source => exports.take(1)(exports.skipWhile(d => !f(d))(source))
 
 class FindIndex extends Sink {
@@ -243,43 +244,19 @@ class FindIndex extends Sink {
     }
 }
 
-exports.findIndex = f => source => new FindIndex(f).subscribe(source)
+exports.findIndex = deliver(FindIndex)
 
 class First extends Sink {
-    init(source, f, defaultValue) {
-        this.source = source
+    init(f, defaultValue) {
         this.f = f
         this.value = defaultValue
         this.count = 0
     }
     next(data) {
         const f = this.f
-        if (!f || f(data, this.count++, this.source)) {
+        if (!f || f(data, this.count++)) {
             this.value = data
-            this.sink.next(data)
-            this.complete()
-        }
-    }
-    complete(err) {
-        if (!err && this.value === void 0) err = new Error('no elements in sequence')
-        super.complete(err)
-    }
-}
-
-exports.first = (condition, defaultValue) => source => sink => new First(sink, source, condition, defaultValue).subscribe(source)
-
-class Last extends Sink {
-    init(source, f, defaultValue) {
-        this.source = source
-        this.f = f
-        this.value = defaultValue
-        this.count = 0
-    }
-    next(data) {
-        const f = this.f
-        if (!f || f(data, this.count++, this.source)) {
-            this.value = data
-            this.sink.next(data)
+            this.defer()
             this.complete()
         }
     }
@@ -292,4 +269,27 @@ class Last extends Sink {
     }
 }
 
-exports.last = (condition, defaultValue) => source => sink => new Last(sink, source, condition, defaultValue).subscribe(source)
+exports.first = deliver(First)
+
+class Last extends Sink {
+    init(f, defaultValue) {
+        this.f = f
+        this.value = defaultValue
+        this.count = 0
+    }
+    next(data) {
+        const f = this.f
+        if (!f || f(data, this.count++)) {
+            this.value = data
+        }
+    }
+    complete(err) {
+        if (!err) {
+            if (this.value === void 0) err = new Error('no elements in sequence')
+            else this.sink.next(this.value)
+        }
+        super.complete(err)
+    }
+}
+
+exports.last = deliver(Last)

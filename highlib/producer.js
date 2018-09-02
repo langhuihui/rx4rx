@@ -1,18 +1,18 @@
 const {
     Sink,
     noop,
-    asap
 } = require('./common')
 const {
     share
 } = require('./combination')
 
 exports.subject = source => {
-    const defer = share(sink => {
-        defer.sink = sink
-        return source ? source(defer) : noop
+    const subSink = new Sink()
+    share(sink => {
+        subSink.sink = sink
+        source && source(subSink)
     })
-    return Object.setPrototypeOf(defer, Sink.prototype)
+    return subSink
 }
 
 exports.fromArray = array => sink => {
@@ -22,64 +22,54 @@ exports.fromArray = array => sink => {
     //         while (pos < l && !sink.disposed) sink.next(array[pos++])
     //         sink.complete()
     //     }, () => sink.dispose())
-    asap(() => {
-        sink.pos = 0
-        const l = array.length
-        while (sink.pos < l && !sink.disposed) sink.next(array[sink.pos++])
-        sink.complete()
-    }, () => sink.dispose())
+    // asap(() => {
+    //     sink.pos = 0
+    //     const l = array.length
+    //     while (sink.pos < l && !sink.disposed) sink.next(array[sink.pos++])
+    //     sink.complete()
+    // }, () => sink.dispose())
+    sink.pos = 0
+    const l = array.length
+    while (sink.pos < l && !sink.disposed) sink.next(array[sink.pos++])
+    sink.complete()
 }
 exports.of = (...items) => exports.fromArray(items)
 exports.interval = period => sink => {
     let i = 0;
-    const id = setInterval(() => sink.next(i++), period)
-    return () => clearInterval(id)
+    sink.defer([clearInterval, , setInterval(() => sink.next(i++), period)])
 }
 exports.timer = (delay, period) => sink => {
-    let i = 0;
-    let clear = clearTimeout
-    let id = setTimeout(() => {
-        clear = clearInterval
-        id = setInterval(() => sink.next(i++), period)
-    }, delay)
-    return () => clear(id)
+    const defer = [clearTimeout, , setTimeout(() => {
+        defer[0] = clearInterval
+        let i = 0;
+        defer[2] = setInterval(() => sink.next(i++), period)
+    }, delay)]
+    sink.defer(defer)
 }
 exports.fromEventPattern = (add, remove) => sink => {
     const n = d => sink.next(d);
-    return asap(() => add(n), () => remove(n))
+    sink.defer([remove, , n])
+    add(n)
 }
 exports.fromEvent = (target, name) => typeof target.on == 'function' ? exports.fromEventPattern(handler => target.on(name, handler), handler => target.off(name, handler)) : exports.fromEventPattern(handler => target.addEventListener(name, handler), handler => target.removeEventListener(name, handler))
-exports.range = (start, count) => (sink, pos = start, end = count + start) => asap(() => {
-    while (pos < end) sink.next(pos++)
+exports.range = (start, count) => (sink, pos = start, end = count + start) => {
+    while (pos < end && !sink.disposed) sink.next(pos++)
     sink.complete()
-}, () => (pos = end, sink.dispose()))
+}
 
 exports.fromPromise = source => sink => {
     source.then(d => (sink.next(d), sink.complete())).catch(e => sink.complete(e))
-    return () => sink.dispose()
 }
+
 exports.fromIterable = source => sink => {
-    const iterator = source[Symbol.iterator]()
-    let value, rv;
-    let done = false;
-    asap(() => {
-        try {
-            while (!done) {
-                ({
-                    value,
-                    done
-                } = iterator.next(rv))
-                rv = sink.next(value)
-            }
-            sink.complete()
-        } catch (e) {
-            sink.complete(e)
+    try {
+        for (let data of source) {
+            sink.next(data)
+            if (sink.disposed) return
         }
-    })
-    return () => {
-        iterator.return(_);
-        done = true;
-        sink.dispose()
+        sink.complete()
+    } catch (err) {
+        sink.complete(err)
     }
 }
 exports.from = source => {
@@ -94,14 +84,14 @@ exports.from = source => {
             return exports.of(source)
     }
 }
-exports.bindCallback = (call, thisArg, ...args) => sink => asap(() => {
+exports.bindCallback = (call, thisArg, ...args) => sink => {
     const inArgs = args.concat((...rargs) => (sink.next(rargs.length > 1 ? rargs : rargs[0]), sink.complete()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
-}, () => sink.dispose())
-exports.bindNodeCallback = (call, thisArg, ...args) => sink => asap(() => {
+}
+exports.bindNodeCallback = (call, thisArg, ...args) => sink => {
     const inArgs = args.concat((err, ...rargs) => (err && sink.complete(err)) || (sink.next(rargs.length > 1 ? rargs : rargs[0]), sink.complete()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
-}, () => sink.dispose())
-exports.never = sink => noop
-exports.throwError = e => sink => (sink.complete(e), noop)
+}
+exports.never = noop
+exports.throwError = e => sink => sink.complete(e)
 exports.empty = exports.throwError()

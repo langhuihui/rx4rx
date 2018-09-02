@@ -1,6 +1,6 @@
 const {
     Sink,
-    noop
+    deliver
 } = require('./common')
 class Share extends Sink {
     init(source) {
@@ -10,14 +10,13 @@ class Share extends Sink {
     add(sink) {
         this.sinks.push(sink)
         if (this.sinks.length === 1) {
-            this.subscribe(this.source)
+            this.source(this)
         }
     }
     remove(sink) {
         this.sinks.splice(this.sinks.indexOf(sink), 1)
         if (this.sinks.length === 0) {
             this.defer()
-            this.defer = noop
         }
     }
     next(data) {
@@ -30,7 +29,10 @@ class Share extends Sink {
 }
 exports.share = source => {
     const share = new Share(null, source)
-    return sink => (share.add(sink), () => share.remove(sink))
+    return sink => {
+        sink.defer([share.remove, share, this])
+        share.add(sink);
+    }
 }
 exports.iif = (condition, trueS, falseS) => sink => condition() ? trueS(sink) : falseS(sink)
 class Race extends Sink {
@@ -51,25 +53,18 @@ class Concat extends Sink {
     init(sources) {
         this.sources = sources
         this.pos = 0
-        this.defer = noop
         this.len = sources.length
     }
     complete(err) {
-        if (err) this.sink.complete(err)
-        if (this.pos < this.len) this.subscribe(this.sources[this.pos++])
-        else this.sink.complete()
-    }
-    dispose() {
-        this.pos = this.len
-        this.defer()
-        super.dispose()
+        if (err) {
+            super.complete(err)
+            return
+        }
+        if (this.pos < this.len && !this.disposed) this.sources[this.pos++](this)
+        else super.complete()
     }
 }
-exports.concat = (...sources) => sink => {
-    const concat = new Concat(sink, sources)
-    concat.complete()
-    return () => concat.dispose()
-}
+exports.concat = (...sources) => sink => new Concat(sink, sources).complete()
 
 class Merge extends Sink {
     init(nLife) {
@@ -120,11 +115,12 @@ exports.combineLatest = (...sources) => sink => {
     const array = new Array(nTotal)
     // const defers = new Array(nTotal)
     // for (let i = 0; i < nTotal; ++i) defers[i] = sources[i](new CombineLatest(sink, i, array, context))
-    const defers = sources.forEach((source, i) => source(new CombineLatest(sink, i, array, context)))
-    return () => defers.forEach(defer => defer())
+    sources.forEach((source, i) => source(new CombineLatest(sink, i, array, context)))
 }
-exports.startWith = (...xs) => inputSource => (sink, pos, l = xs.length) =>
-    asap(() => {
-        while (pos < l) sink.next(xs[pos++])
-        sink.subscribe(inputSource)
-    }, () => (pos = l, sink.defer(), sink.dispose()))
+exports.startWith = (...xs) => inputSource => (sink, pos = 0, l = xs.length) => {
+    while (pos < l) {
+        if (sink.disposed) return
+        sink.next(xs[pos++])
+    }
+    sink.disposed || inputSource(sink)
+}
