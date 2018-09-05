@@ -1,7 +1,7 @@
 function noop() {}
 exports.noop = noop
 exports.stop = Symbol('stop')
-//第一次调用有效
+    //第一次调用有效
 exports.once = f => (...args) => {
     if (f) {
         let r = f(...args)
@@ -15,12 +15,13 @@ class Sink {
         this.defers = new Set()
         this.sink = sink
         this.init(...args)
-        if (sink) this.disposePass = true
+        if (sink) sink.defers.add(this)
     }
     init() {
 
     }
     set disposePass(value) {
+        if (!this.sink) return
         if (value)
             this.sink.defers.add(this)
         else this.sink.defers.delete(this)

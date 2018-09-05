@@ -1,7 +1,9 @@
 const {
     Sink,
-    deliver
+    deliver,
+    noop
 } = require('./common')
+exports.Sink = Sink
 exports.pipe = (first, ...cbs) => cbs.reduce((aac, c) => c(aac), first);
 
 class Reuse {
@@ -29,13 +31,13 @@ exports.toPromise = source => new Promise((resolve, reject) => {
 
 //SUBSCRIBER
 exports.subscribe = (n, e = noop, c = noop) => source => {
-    const sink = new Sink()
-    sink.next = n
-    sink.complete = err => err ? e(err) : c()
-    source(sink)
-    return sink
-}
-// UTILITY 
+        const sink = new Sink()
+        sink.next = n
+        sink.complete = err => err ? e(err) : c()
+        source(sink)
+        return sink
+    }
+    // UTILITY 
 class Tap extends Sink {
     init(f) {
         this.f = f
@@ -49,6 +51,36 @@ class Tap extends Sink {
 
 exports.tap = deliver(Tap)
 
-exports.delay = delay => source => sink => sink.defer([clearTimeout, , setTimeout(source, delay, sink)])
+class Delay extends Sink {
+    init(delay) {
+        this.delay = delay
+        this.buffer = []
+        this.timeoutId = [clearTimeout, , ]
+        this.defer(this.timeoutId)
+    }
+    delay(delay) {
+        this.timeoutId[2] = setTimeout(this.pop, delay, this)
+    }
+    pop(_this) {
+        const { time: lastTime, data } = _this.buffer.shift()
+        _this.sink.next(data)
+        if (_this.buffer.length) {
+            _this.delay(_this.buffer[0].time - lastTime)
+        }
+    }
+    next(data) {
+        if (!this.buffer.length) {
+            this.delay(this.delay)
+        }
+        this.buffer.push({ time: new Date, data })
+    }
+    complete(err) {
+        if (err) this.sink.complete(err)
+        else {
+            this.timeoutId[2] = setTimeout(() => this.sink.complete(), this.delay)
+        }
+    }
+}
+exports.delay = deliver(Delay)
 
 Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'))

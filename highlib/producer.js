@@ -7,12 +7,15 @@ const {
 } = require('./combination')
 
 exports.subject = source => {
-    const subSink = new Sink()
-    share(sink => {
-        subSink.sink = sink
+    let subSink = null
+    const observable = share(sink => {
+        subSink = sink
         source && source(subSink)
     })
-    return subSink
+    observable.next = d => subSink && subSink.next(d)
+    observable.complete = () => subSink && subSink.complete()
+    observable.error = err => subSink && subSink.complete(err)
+    return observable
 }
 
 exports.fromArray = array => sink => {
