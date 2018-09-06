@@ -53,7 +53,7 @@ exports.tap = deliver(Tap)
 
 class Delay extends Sink {
     init(delay) {
-        this.delay = delay
+        this.delayTime = delay
         this.buffer = []
         this.timeoutId = [clearTimeout, , ]
         this.defer(this.timeoutId)
@@ -70,17 +70,36 @@ class Delay extends Sink {
     }
     next(data) {
         if (!this.buffer.length) {
-            this.delay(this.delay)
+            this.delay(this.delayTime)
         }
         this.buffer.push({ time: new Date, data })
     }
     complete(err) {
         if (err) this.sink.complete(err)
         else {
-            this.timeoutId[2] = setTimeout(() => this.sink.complete(), this.delay)
+            this.timeoutId[2] = setTimeout(() => this.sink.complete(), this.delayTime)
         }
     }
 }
 exports.delay = deliver(Delay)
 
 Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'))
+
+//该代理可以实现将pipe模式转成链式编程
+function createProxy(source) {
+    const result = new Proxy((...args) => source(...args), {
+        get(target, prop) {
+            if (prop == 'subscribe') return (...args) => exports.subscribe(...args)(source)
+            if (!source) {
+                return (...args) => createProxy(exports[prop](...args))
+            } else {
+                return (...args) => {
+                    source = exports[prop](...args)(source)
+                    return result
+                }
+            }
+        }
+    })
+    return result
+}
+exports.rx = createProxy()

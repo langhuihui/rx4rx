@@ -1,6 +1,7 @@
 const {
     Sink,
-    deliver
+    deliver,
+    noop
 } = require('./common')
 const {
     Filter
@@ -41,7 +42,7 @@ class _TakeUntil extends Sink {
 class TakeUntil extends Sink {
     init(sSrc) {
         this._takeUntil = new _TakeUntil(null, this).subscribe(sSrc)
-        //将开关事件sink纳入销毁链
+            //将开关事件sink纳入销毁链
         this.defer(this._takeUntil)
     }
     complete(err) {

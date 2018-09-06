@@ -383,7 +383,37 @@ exports.bufferTime = miniseconds => source => (n, c) => {
 // UTILITY 
 exports.tap = f => source => (n, c) => source(d => (f(d), n(d)), c);
 exports.delay = delay => source => (n, c) => {
-    let defer = () => clearTimeout(id)
-    const id = setTimeout(() => defer = source(n, c), delay)
-    return () => defer()
+    const buffer = []
+    let id = null
+    let defer = source(d => {
+        buffer.push({ time: new Date, d })
+        if (buffer.length == 1) id = setTimeout(pop, delay)
+    }, c)
+
+    function pop() {
+        const { time, data } = buffer.shift()
+        n(data)
+        if (buffer.length)
+            id = setTimeout(pop, buffer[0].time - time)
+    }
+    return () => (clearTimeout(id), defer())
 }
+
+//该代理可以实现将pipe模式转成链式编程
+function createProxy(source) {
+    const result = new Proxy((...args) => source(...args), {
+        get(target, prop) {
+            if (prop == 'subscribe') return (...args) => exports.subscribe(...args)(source)
+            if (!source) {
+                return (...args) => createProxy(exports[prop](...args))
+            } else {
+                return (...args) => {
+                    source = exports[prop](...args)(source)
+                    return result
+                }
+            }
+        }
+    })
+    return result
+}
+exports.rx = createProxy()
