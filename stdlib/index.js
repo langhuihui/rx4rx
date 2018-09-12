@@ -65,23 +65,18 @@ exports.reusePipe = (...args) => {
 exports.toPromise = n => source => new Promise((resolve, reject) => source(n, err => err ? reject(err) : resolve()))
     //SUBSCRIBER
 exports.subscribe = (n, e = noop, c = noop) => source => source(n, once(err => err ? e(err) : c()))
-const _subjectPrototype = {
-    next: noop,
-    complete: noop,
-    error(err) {
-        this.complete(err)
-    },
-    rx(n, c) {
-        this.next = n
-        this.complete = c
-    }
-}
 
 //CREATION
 exports.subject = source => {
-    const _subject = Object.setPrototypeOf(exports.share((n, c) => _subject.rx(n, c)), _subjectPrototype)
-    if (source) source(_subject.next, _subject.complete)
-    return _subject
+    const defer = exports.share((n, c) => {
+        defer.next = n;
+        defer.error = defer.complete = c;
+        source && source(n, c)
+    })
+    defer.next = noop
+    defer.complete = noop
+    defer.error = noop
+    return defer
 }
 
 exports.fromArray = array => (n, c, pos = 0, l = array.length) =>
@@ -89,7 +84,6 @@ exports.fromArray = array => (n, c, pos = 0, l = array.length) =>
         while (pos < l) n(array[pos++])
         c()
     }, () => (pos = l, c = noop))
-
 
 exports.of = (...items) => exports.fromArray(items)
 exports.interval = period => n => {
@@ -298,7 +292,7 @@ const defaultAuditConfig = { leading: false, trailing: true }
 exports.audit = durationSelector => exports.throttle(durationSelector, defaultAuditConfig)
 exports.filter = f => source => (n, c) => source(d => f(d) && n(d), c)
 exports.elementAt = (count, defaultValue) => source => (n, c, last = defaultValue, _count = count) => {
-    const defer = source(d => _count-- === 0 && ((last = d), defer(), n(d), c()), err => err || last === void 0 && (err = getError('no elements in sequence')) ? c(err) : c());
+    const defer = source(d => _count-- === 0 && (defer(), n(d), c()), err => err ? c(err) : defaultValue === void 0 && (err = getError('no elements in sequence')) ? c(err) : (n(defaultValue), c()));
     return defer
 }
 exports.find = f => source => exports.take(1)(exports.skipWhile(d => !f(d))(source))
@@ -400,20 +394,10 @@ exports.delay = delay => source => (n, c) => {
 }
 
 //该代理可以实现将pipe模式转成链式编程
-function createProxy(source) {
-    const result = new Proxy((...args) => source(...args), {
-        get(target, prop) {
-            if (prop == 'subscribe') return (...args) => exports.subscribe(...args)(source)
-            if (!source) {
-                return (...args) => createProxy(exports[prop](...args))
-            } else {
-                return (...args) => {
-                    source = exports[prop](...args)(source)
-                    return result
-                }
-            }
-        }
-    })
-    return result
+const rxProxy = {
+    get: (target, prop) => (...args) => new Proxy(exports[prop](...args)(target), rxProxy)
 }
-exports.rx = createProxy()
+
+exports.rx = new Proxy({}, {
+    get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy)
+})

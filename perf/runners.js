@@ -11,6 +11,7 @@ exports.runMost = runMost;
 exports.runCallbag = runCallbag;
 exports.runCallbagX = runCallbagX;
 exports.runChannel = runChannel;
+exports.runNode = runNode;
 exports.runXStream = runXStream;
 exports.runKefir = runKefir;
 exports.kefirFromArray = kefirFromArray;
@@ -87,15 +88,27 @@ function runSuite(suite) {
 }
 
 function runMost(deferred, mostPromise) {
-    mostPromise.then(function () {
+    mostPromise.then(function() {
         deferred.resolve();
-    }, function (e) {
+    }, function(e) {
         deferred.benchmark.emit({
             type: 'error',
             error: e
         });
         deferred.resolve(e);
     });
+}
+
+function runNode(deferred, rxStream) {
+    rxStream.pipe(require('../nodelib').subscribe(noop, error => {
+        deferred.benchmark.emit({
+            type: 'error',
+            error
+        });
+        deferred.resolve(error);
+    }, () => {
+        deferred.resolve();
+    }))
 }
 
 function runChannel(deferred, channel) {
@@ -112,33 +125,33 @@ function runChannel(deferred, channel) {
 
 function runCallbagX(deferred, rxStream) {
     require('../highlib').subscribe(noop, error => {
-        deferred.benchmark.emit({
-            type: 'error',
-            error
-        });
-        deferred.resolve(error);
-    }, () => deferred.resolve())(rxStream)
-    // rxStream(noop, error => {
-    //     if (error) {
-    //         deferred.benchmark.emit({ type: 'error', error });
-    //         deferred.resolve(e);
-    //     } else {
-    //         deferred.resolve();
-    //     }
-    // })
+            deferred.benchmark.emit({
+                type: 'error',
+                error
+            });
+            deferred.resolve(error);
+        }, () => deferred.resolve())(rxStream)
+        // rxStream(noop, error => {
+        //     if (error) {
+        //         deferred.benchmark.emit({ type: 'error', error });
+        //         deferred.resolve(e);
+        //     } else {
+        //         deferred.resolve();
+        //     }
+        // })
 }
 
 function runRx6(deferred, rxStream) {
     rxStream.subscribe(
         noop,
-        function (e) {
+        function(e) {
             deferred.benchmark.emit({
                 type: 'error',
                 error: e
             });
             deferred.resolve(e);
         },
-        function () {
+        function() {
             deferred.resolve();
         }
     );
@@ -147,10 +160,10 @@ function runRx6(deferred, rxStream) {
 function runXStream(deferred, xstream) {
     xstream.addListener({
         next: noop,
-        complete: function () {
+        complete: function() {
             deferred.resolve();
         },
-        error: function (e) {
+        error: function(e) {
             deferred.benchmark.emit({
                 type: 'error',
                 error: e
@@ -177,13 +190,13 @@ function runCallbag(deferred, source) {
 
 function runKefir(deferred, kefirStream) {
     kefirStream.onValue(noop);
-    kefirStream.onEnd(function () {
+    kefirStream.onEnd(function() {
         deferred.resolve();
     });
 }
 
 function kefirFromArray(array) {
-    return kefir.stream(function (emitter) {
+    return kefir.stream(function(emitter) {
         for (var i = 0; i < array.length; ++i) {
             emitter.emit(array[i]);
         }
@@ -194,10 +207,10 @@ function kefirFromArray(array) {
 function runBacon(deferred, baconStream) {
     try {
         baconStream.onValue(noop);
-        baconStream.onEnd(function () {
+        baconStream.onEnd(function() {
             deferred.resolve();
         });
-        baconStream.onError(function (e) {
+        baconStream.onError(function(e) {
             deferred.benchmark.emit({
                 type: 'error',
                 error: e
@@ -217,7 +230,7 @@ function runBacon(deferred, baconStream) {
 // but will only work for test runs that reduce a stream to a
 // single value.
 function runHighland(deferred, highlandStream) {
-    highlandStream.pull(function (err, z) {
+    highlandStream.pull(function(err, z) {
         if (err) {
             deferred.reject(err);
             return;

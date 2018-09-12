@@ -85,21 +85,12 @@ exports.delay = deliver(Delay)
 
 Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'))
 
+
 //该代理可以实现将pipe模式转成链式编程
-function createProxy(source) {
-    const result = new Proxy((...args) => source(...args), {
-        get(target, prop) {
-            if (prop == 'subscribe') return (...args) => exports.subscribe(...args)(source)
-            if (!source) {
-                return (...args) => createProxy(exports[prop](...args))
-            } else {
-                return (...args) => {
-                    source = exports[prop](...args)(source)
-                    return result
-                }
-            }
-        }
-    })
-    return result
+const rxProxy = {
+    get: (target, prop) => (...args) => new Proxy(exports[prop](...args)(target), rxProxy)
 }
-exports.rx = createProxy()
+
+exports.rx = new Proxy({}, {
+    get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy)
+})

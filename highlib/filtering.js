@@ -211,14 +211,14 @@ class ElementAt extends Sink {
     }
     next(data) {
         if (this.count-- === 0) {
-            this.value = data
+            this.sink.next(data)
             this.defer()
-            this.complete()
+            super.complete()
         }
     }
     complete(err) {
         if (!err) {
-            if (this.value === void 0) err = new Error('no elements in sequence')
+            if (this.value === void 0) err = new Error('not enough elements in sequence')
             else this.sink.next(this.value)
         }
         super.complete(err)

@@ -1,6 +1,7 @@
 var Benchmark = require('benchmark');
 var callbagX = require('../highlib');
 var channel = require('../channel');
+var node = require('../nodelib')
 var callbag = require('callbag-basics')
 var xs = require('xstream').default;
 var most = require('most');
@@ -26,22 +27,31 @@ for (var i = 0; i < a.length; ++i) {
 var suite = Benchmark.Suite('scan -> reduce ' + n + ' integers');
 var options = {
     defer: true,
-    onError: function (e) {
+    onError: function(e) {
         e.currentTarget.failure = e.error;
     }
 };
 
 suite
-    // .add('channel', function (deferred) {
-    //         runners.runChannel(deferred,
-    //             channel.pipe(
-    //                 channel.fromArray(a),
-    //                 channel.scan(sum, 0),
-    //                 channel.reduce(passthrough, 0),
-    //             )
-    //         );
-    //     }, options)
-    .add('rxlite', function (deferred) {
+// .add('channel', function (deferred) {
+//         runners.runChannel(deferred,
+//             channel.pipe(
+//                 channel.fromArray(a),
+//                 channel.scan(sum, 0),
+//                 channel.reduce(passthrough, 0),
+//             )
+//         );
+//     }, options)
+    .add('node', function(deferred) {
+        runners.runNode(deferred,
+            node.pipe(
+                node.fromArray(a),
+                node.scan(sum, 0),
+                node.reduce(passthrough, 0),
+            )
+        );
+    }, options)
+    .add('rxlite', function(deferred) {
         runners.runCallbagX(deferred,
             callbagX.pipe(
                 callbagX.fromArray(a),
@@ -50,7 +60,7 @@ suite
             )
         );
     }, options)
-    .add('cb-basics', function (deferred) {
+    .add('cb-basics', function(deferred) {
         runners.runCallbag(deferred,
             callbag.pipe(
                 fromArray(a),
@@ -59,25 +69,25 @@ suite
             )
         );
     }, options)
-    .add('xstream', function (deferred) {
+    .add('xstream', function(deferred) {
         runners.runXStream(deferred, xs.fromArray(a).fold(sum, 0).fold(passthrough, 0).last());
     }, options)
-    .add('most', function (deferred) {
+    .add('most', function(deferred) {
         runners.runMost(deferred, most.from(a).scan(sum, 0).reduce(passthrough, 0));
     }, options)
-    .add('rx 6', function (deferred) {
+    .add('rx 6', function(deferred) {
         runners.runRx6(deferred, rxjs.from(a).pipe(rxOp.scan(sum, 0), rxOp.reduce(passthrough, 0)));
     }, options)
-    .add('kefir', function (deferred) {
+    .add('kefir', function(deferred) {
         runners.runKefir(deferred, kefirFromArray(a).scan(sum, 0).scan(passthrough, 0).last());
     }, options)
-    .add('highland', function (deferred) {
+    .add('highland', function(deferred) {
         runners.runHighland(deferred, highland(a).scan(0, sum).reduce(0, passthrough));
     }, options)
-    .add('lodash', function () {
+    .add('lodash', function() {
         return lodashScan(sum, 0, a).reduce(passthrough, 0);
     })
-    .add('Array', function () {
+    .add('Array', function() {
         return arrayScan(sum, 0, a).reduce(passthrough, 0);
     })
 
@@ -85,14 +95,14 @@ runners.runSuite(suite);
 
 function arrayScan(f, initial, a) {
     var result = initial;
-    return a.map(function (x) {
+    return a.map(function(x) {
         return result = f(result, x);
     });
 }
 
 function lodashScan(f, initial, a) {
     var result = initial;
-    return lodash(a).map(function (x) {
+    return lodash(a).map(function(x) {
         return result = f(result, x);
     });
 }
