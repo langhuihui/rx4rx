@@ -6,7 +6,6 @@ class Subscriber extends Writable {
         this.n = n
         this.e = e
         this.c = c
-            // this.on('pipe', src => src.on('close', c).on('error', e))
     }
     _write(chunk, encoding, callback) {
         this.n(chunk)

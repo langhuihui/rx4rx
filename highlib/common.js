@@ -50,7 +50,7 @@ class Sink {
         } else {
             this.defers.forEach(defer => {
                 switch (true) {
-                    case defer.dispose:
+                    case defer.dispose != void 0:
                         defer.dispose()
                         break;
                     case typeof defer == 'function':

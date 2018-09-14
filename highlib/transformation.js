@@ -25,7 +25,7 @@ class Scan extends Sink {
 exports.scan = (...args) => source => sink => source(new Scan(sink, args.length == 2, ...args))
 
 exports.map = f => source => sink => source(sink.fusionMap ? sink.fusionMap(f) : new MapSink(sink, f))
-
+exports.mapTo = target => exports.map(x => target)
 exports.pluck = s => exports.map(d => d[s])
 
 class Pairwise extends Sink {
