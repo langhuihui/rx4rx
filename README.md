@@ -1,94 +1,41 @@
-# rxlite-std
-A standard for creating reactive program library faster and more lightweight than rxjs
-
--------
-
-> * 轻量级,标准库实现使用了极小的代码
-> * 高性能，标准库实现性能高于rxjs2倍多，略高于callbag
-> * 没有核心库，只是一份**标准**，任何人可以基于此标准编写自己的库（标准库的实现可以参考[rxlite-stdlib](https://github.com/langhuihui/rxlite-std/tree/master/stdlib)）
-> * 比callbag更容易理解和扩展自己的实用库
-
-## 概述
-
-* 数据源(Observable)、操作符(operator)、观察者(Observer)都是形如`(next:Function,complete:Function)=>Function`的一个函数
-* 调用上述的函数，意味着激活，类似"subscribe" on Observables
-* 在函数内部调用传入的next函数，意味着发送数据，类似"next" on Observers
-* 在函数内部调用传入的complete函数，意味着完成，类似"complete" on Observers
-* 调用函数返回的那个函数，意味着终止，类似"unsubscribe" on Subscriptions
-
-## 详细说明
-
-`(next:Function,complete:Function)=>Function`
-
-### 概念
-
-* Callbag:形如`(next:Function,complete:Function)=>Function`的一个函数
-* Source: 是一个Callbag，负责产生数据
-* Deliver:是数据传递者类似rxjs中数百个操作符，一般是形如`source:Callbag => Callbag`这样的函数
-* Sink: 是数据消费者
-
-### 协议
-
-#### 激活Callbag
-- 调用Callbag就是激活Callbag,调用Callbag的时候必须传入两个函数，且只能传入两个函数
-- 第一个函数next，是形如`(data:any)=>void`的函数，data是传过来的数据
-- Callbag每次调用都会激活一个新的数据流
-
-#### 终止Callbag数据流
-- Callbag一旦激活，就变成了一个终止函数（Callbag的返回值），调用该终止函数就会使得Callbag停止发送数据
-- Callbag终止函数允许调用多次，但不会影响程序的行为
-- Callbag一旦终止，就永远不会，且不能再发送数据
-
-#### Callbag完成事件
-- Callbag数据发送完成后，调用complete函数
-- 如果数据传输出错，将错误信息传入complete函数
-- 允许多次调用complete函数，但不能改变程序的行为（由subscribe封装，保证最终只调用一次外部传入的complete回调）
-- 上一条的目的是为了使得扩展库代码更加简练，所以subscribe建议采用标准库的写法
+# rx4rx
+Rxjs的4种实现方式
 
 
-### 部分标准库源码实例
+# 背景
+本人自从读过一篇来自Info的[《函数式反应型编程(FRP) —— 实时互动应用开发的新思路》](http://www.infoq.com/cn/articles/functional-reactive-programming)后便迷恋上了Rx，甚至以当时的Rxjs库移植了一套适用于Flash的AS3.0的Rx库[ReactiveFl](https://www.oschina.net/p/reactivefl)，也在实际开发中不断实践体会其中的乐趣。最近在知乎上无意中看到有人提到了一个名为callbag的项目，引发了我很大的兴趣，甚至翻墙观看了作者的视频[Callback Heaven - Andre Staltz](https://www.youtube.com/watch?v=HssczgaY9BM)看完视频，我久久不能平静，这是多么的奇思妙想，然而当我运行了作者代码库里面的性能测试的时候，另一个不为人所知的库出现了，叫做Most。这个库性能了得，远远超过同类的库，然后我就想是否可以结合两者的优势，创造出性能高超，但设计巧妙又通俗易懂的Rx库呢？于是我做了如下的尝试：
 
-> 可以说充分利用了js的语法特性，做到了极致的精简
+# RxJs的四种实现方式
+1. 实现代码最小的库（受callbag启发）
+2. 性能最好的库（参考了Most）
+3. 利用js的生成器实现的库（突发奇想）
+4. 扩展Nodejs的Stream类实现的库（受Event-Stream的启发）
+> 受到以上的启发，我又实现了Golang的Rx库
+>	源码请关注我的github，https://github.com/langhuihui
 
-```js
-const noop = () => {}
+# Rx实现的关键功能
 
-exports.pipe = (first, ...cbs) => cbs.reduce((aac, c) => c(aac), first);
+要实现一个Rx库，关键在于实现数据的推送以及消费过程中的四个基本功能：
+1. 订阅：即激活Rx数据流的每一个环节，生产者此时可以开始发送数据（某些生产者并不关心是否有人订阅）
+2. 发送/接受 数据：生产和消费的核心功能
+3. 完成/异常：由生产者发出的事件
+4. 取消订阅： 由消费者触发终止数据流，回收所有资源
 
-exports.subscribe = (n, e = noop, c = noop) => source => source(n, once(err => err ? e(err) : c()))
-
-exports.interval = period => n => {
-    let i = 0;
-    const id = setInterval(() => n(i++), period)
-    return () => clearInterval(id)
-}
-
-exports.never = n => noop
-
-exports.takeWhile = f => source => (n, c) => {
-    const defer = source(d => f(d) ? n(d) : (defer(), c()), c);
-    return defer
-}
-
-exports.filter = f => source => (n, c) => source(d => f(d) && n(d), c)
-
-exports.map = f => source => (n, c) => source(d => n(f(d)), c);
-
-exports.tap = f => source => (n, c) => source(d => (f(d), n(d)), c);
+```bash
+生产者
+(*)-------------(o)--------------(o)---------------(x)----------------|>
+ |               |                |                 |                 |
+Start          value            value             error              Done
+消费者
+(*)-------------(o)--------------(o)---------------(x)----------------|>
+ |               |                |                 |                 |
+Subscribe      onNext           onNext            onError         onComplete
 ```
 
-## 响应式编程的深层思考
+上述过程中，如果用户调用了unSubscribe/Disopse的方法，就可以中断，从而不再触发任何事件
 
-从rxjs到[callbag](https://github.com/callbag/callbag)可以说是一次大的抽象，然而callbag的形式过于灵活，编写扩展库非常烧脑。rxlite采用折中策略
-使得形式容易理解，功能更加明确，代码也是非常简洁。
+# Rx的两种书写模式
+1. 链式编程
+2. 管道模式
 
-这些得益于js可以用于函数式编程，又是弱类型语言所致，所有的中间状态均存放于函数定义时所处的作用域里面，即闭包。在使用面向对象的方式时，
-本质上仍然是函数调用，只不过将状态变量存放于创建的Object中而已。
-
-callbag的形式其实本质非常类似Promise，我们看到当我们创建一个Promise的时候`new Promise((resolve,reject)=>{})`
-形式非常类似调用`(next,complete)=>{}`，当然promise只能接受一次数据，这就是区别了。
-
-为了能在同步发送数据的过程中终止数据流，不得已在next函数中附带stop方法，否则整个标准库的形式将更加简练,性能也会更好。
-
-为了整个库的轻量级，去掉Scheduler功能，在js的语境中，使用率非常低，如果真出现这种需求，可以自己编写扩展，也是分分钟的事情。
 
