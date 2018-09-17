@@ -54,7 +54,13 @@ exports.fromEventPattern = (add, remove) => sink => {
     sink.defer([remove, , n])
     add(n)
 }
-exports.fromEvent = (target, name) => typeof target.on == 'function' ? exports.fromEventPattern(handler => target.on(name, handler), handler => target.off(name, handler)) : exports.fromEventPattern(handler => target.addEventListener(name, handler), handler => target.removeEventListener(name, handler))
+exports.fromEvent = (target, name) => {
+    const addF = ['on', 'addEventListener', 'addListener'].find(x => typeof target[x] == 'function')
+    const removeF = ['off', 'removeEventListener', 'removeListener'].find(x => typeof target[x] == 'function')
+    if (addF && removeF)
+        return exports.fromEventPattern(handler => target[addF](name, handler), handler => target[removeF](name, handler))
+    else throw 'target is not a EventDispachter'
+}
 exports.range = (start, count) => (sink, pos = start, end = count + start) => {
     while (pos < end && !sink.disposed) sink.next(pos++)
     sink.complete()

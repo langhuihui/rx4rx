@@ -101,7 +101,13 @@ exports.timer = (delay, period) => n => {
     return () => clear(id)
 }
 exports.fromEventPattern = (add, remove) => n => asap(() => add(n), () => remove(n))
-exports.fromEvent = (target, name) => typeof target.on == 'function' ? exports.fromEventPattern(handler => target.on(name, handler), handler => target.off(name, handler)) : exports.fromEventPattern(handler => target.addEventListener(name, handler), handler => target.removeEventListener(name, handler))
+exports.fromEvent = (target, name) => {
+    const addF = ['on', 'addEventListener', 'addListener'].find(x => typeof target[x] == 'function')
+    const removeF = ['off', 'removeEventListener', 'removeListener'].find(x => typeof target[x] == 'function')
+    if (addF && removeF)
+        return exports.fromEventPattern(handler => target[addF](name, handler), handler => target[removeF](name, handler))
+    else throw 'target is not a EventDispachter'
+}
 exports.range = (start, count) => (n, c, pos = start, end = count + start) => asap(() => {
     while (pos < end) n(pos++)
     c()

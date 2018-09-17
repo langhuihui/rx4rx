@@ -91,6 +91,10 @@ class SwitchMap extends Sink {
     }
     next(data) {
         const makeSource = this.makeSource
+        if (this.switch) {
+            this.switch.disposePass = false
+            this.switch.dispose()
+        }
         this.switch = new _SwitchMap(this.sink, data, this)
         makeSource(data)(this.switch)
     }
