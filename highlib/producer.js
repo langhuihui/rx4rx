@@ -5,7 +5,7 @@ const {
 const {
     share
 } = require('./combination')
-
+exports.create = f => sink => f(sink)
 exports.subject = source => {
     let subSink = null
     const observable = share(sink => {

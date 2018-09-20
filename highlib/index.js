@@ -31,13 +31,13 @@ exports.toPromise = source => new Promise((resolve, reject) => {
 
 //SUBSCRIBER
 exports.subscribe = (n, e = noop, c = noop) => source => {
-        const sink = new Sink()
-        sink.next = n
-        sink.complete = err => err ? e(err) : c()
-        source(sink)
-        return sink
-    }
-    // UTILITY 
+    const sink = new Sink()
+    sink.next = n
+    sink.complete = err => err ? e(err) : c()
+    source(sink)
+    return sink
+}
+// UTILITY 
 class Tap extends Sink {
     init(f) {
         this.f = f
@@ -55,7 +55,7 @@ class Delay extends Sink {
     init(delay) {
         this.delayTime = delay
         this.buffer = []
-        this.timeoutId = [clearTimeout, , ]
+        this.timeoutId = [clearTimeout, ,]
         this.defer(this.timeoutId)
     }
     delay(delay) {
@@ -92,5 +92,6 @@ const rxProxy = {
 }
 
 exports.rx = new Proxy({}, {
-    get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy)
+    get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy),
+    set: (target, prop, value) => exports[prop] = value
 })
