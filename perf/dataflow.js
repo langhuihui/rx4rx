@@ -1,5 +1,8 @@
 var Benchmark = require('benchmark');
-var callbagX = require('../highlib');
+var fast = require('../highlib');
+var lite = require('../stdlib')
+var channel = require('../channel')
+var node = require('../nodelib')
 var callbag = require('callbag-basics')
 var xs = require('xstream').default;
 var most = require('most');
@@ -36,35 +39,58 @@ for (var i = 0; i < a.length; ++i) {
 var suite = Benchmark.Suite('dataflow for ' + n + ' source events');
 var options = {
     defer: true,
-    onError: function(e) {
+    onError: function (e) {
         e.currentTarget.failure = e.error;
     }
 };
 
-suite.add('rxlite', function(deferred) {
-        var source = callbagX.fromArray(a);
-        var inc = callbagX.pipe(
+suite.add('rx4rx-lite', function (deferred) {
+        var source = lite.fromArray(a);
+        var inc = lite.pipe(
             source,
-            callbagX.filter(isPositive),
-            callbagX.map(returnPlus1)
+            lite.filter(isPositive),
+            lite.map(returnPlus1)
         );
-        var dec = callbagX.pipe(
+        var dec = lite.pipe(
             source,
-            callbagX.filter(isNegative),
-            callbagX.map(returnMinus1)
+            lite.filter(isNegative),
+            lite.map(returnMinus1)
         );
-        var count = callbagX.pipe(
-            callbagX.merge(inc, dec),
-            callbagX.scan(addXY, 0)
+        var count = lite.pipe(
+            lite.merge(inc, dec),
+            lite.scan(addXY, 0)
         );
-        var label = callbagX.fromArray(['initial', 'Count is ']);
-        var view = callbagX.pipe(
-            callbagX.combineLatest(label, count),
-            callbagX.map(renderWithArray)
+        var label = lite.fromArray(['initial', 'Count is ']);
+        var view = lite.pipe(
+            lite.combineLatest(label, count),
+            lite.map(renderWithArray)
         );
-        runners.runCallbagX(deferred, view);
+        runners.runLite(deferred, view);
     }, options)
-    .add('cb-basics', function(deferred) {
+    .add('rx4rx-fast', function (deferred) {
+        var source = fast.fromArray(a);
+        var inc = fast.pipe(
+            source,
+            fast.filter(isPositive),
+            fast.map(returnPlus1)
+        );
+        var dec = fast.pipe(
+            source,
+            fast.filter(isNegative),
+            fast.map(returnMinus1)
+        );
+        var count = fast.pipe(
+            fast.merge(inc, dec),
+            fast.scan(addXY, 0)
+        );
+        var label = fast.fromArray(['initial', 'Count is ']);
+        var view = fast.pipe(
+            fast.combineLatest(label, count),
+            fast.map(renderWithArray)
+        );
+        runners.runFast(deferred, view);
+    }, options)
+    .add('cb-basics', function (deferred) {
         var source = fromArray(a);
         var inc = callbag.pipe(
             source,
@@ -87,7 +113,7 @@ suite.add('rxlite', function(deferred) {
         );
         runners.runCallbag(deferred, view);
     }, options)
-    .add('xstream', function(deferred) {
+    .add('xstream', function (deferred) {
         var source = xs.fromArray(a);
         var inc = source.filter(isPositive).mapTo(+1);
         var dec = source.filter(isNegative).mapTo(-1);
@@ -96,7 +122,7 @@ suite.add('rxlite', function(deferred) {
         var view = xs.combine(label, count).map(renderWithArray);
         runners.runXStream(deferred, view);
     }, options)
-    .add('most', function(deferred) {
+    .add('most', function (deferred) {
         var source = most.from(a);
         var inc = source.filter(isPositive).map(returnPlus1);
         var dec = source.filter(isNegative).map(returnMinus1);
@@ -105,9 +131,13 @@ suite.add('rxlite', function(deferred) {
         var view = most.combine(renderWithArgs, label, count);
         runners.runMost(deferred, view.drain());
     }, options)
-    .add('rx 6', function(deferred) {
+    .add('rx 6', function (deferred) {
         var source = rxjs.from(a);
-        var { map, filter, scan } = rxOp
+        var {
+            map,
+            filter,
+            scan
+        } = rxOp
         var inc = source.pipe(filter(isPositive), map(returnPlus1));
         var dec = source.pipe(filter(isNegative), map(returnMinus1));
         var count = rxjs.merge(inc, dec).pipe(scan(addXY, 0));
@@ -115,15 +145,15 @@ suite.add('rxlite', function(deferred) {
         var view = rxjs.combineLatest(label, count).pipe(map(renderWithArgs));
         runners.runRx6(deferred, view);
     }, options)
-    // .add('bacon', function(deferred) {
-    //     var source = bacon.fromArray(a);
-    //     var inc = source.filter(isPositive).map(returnPlus1);
-    //     var dec = source.filter(isNegative).map(returnMinus1);
-    //     var count = inc.merge(dec).scan(0, addXY);
-    //     var label = bacon.fromArray(['initial', 'Count is ']);
-    //     var view = bacon.combineWith(renderWithArgs, label, count);
-    //     runners.runBacon(deferred, view);
-    // }, options)
+// .add('bacon', function(deferred) {
+//     var source = bacon.fromArray(a);
+//     var inc = source.filter(isPositive).map(returnPlus1);
+//     var dec = source.filter(isNegative).map(returnMinus1);
+//     var count = inc.merge(dec).scan(0, addXY);
+//     var label = bacon.fromArray(['initial', 'Count is ']);
+//     var view = bacon.combineWith(renderWithArgs, label, count);
+//     runners.runBacon(deferred, view);
+// }, options)
 
 runners.runSuite(suite);
 

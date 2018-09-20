@@ -25,13 +25,13 @@ for (var i = 0; i < a.length; ++i) {
 var suite = Benchmark.Suite('filter -> map -> fusion ' + n + ' integers');
 var options = {
     defer: true,
-    onError: function(e) {
+    onError: function (e) {
         e.currentTarget.failure = e.error;
     }
 };
 
-suite.add('rxlite', function(deferred) {
-        runners.runCallbagX(deferred,
+suite.add('rx4rx-fast', function (deferred) {
+        runners.runFast(deferred,
             callbagX.pipe(
                 callbagX.fromArray(a),
                 callbagX.map(add1),
@@ -43,7 +43,7 @@ suite.add('rxlite', function(deferred) {
             )
         );
     }, options)
-    .add('cb-basics', function(deferred) {
+    .add('cb-basics', function (deferred) {
         runners.runCallbag(deferred,
             callbag.pipe(
                 fromArray(a),
@@ -56,14 +56,14 @@ suite.add('rxlite', function(deferred) {
             )
         );
     }, options)
-    .add('xstream', function(deferred) {
+    .add('xstream', function (deferred) {
         runners.runXStream(deferred,
             xs.fromArray(a).map(add1).filter(odd).map(add1).map(add1).filter(even).fold(sum, 0).last());
     }, options)
-    .add('most', function(deferred) {
+    .add('most', function (deferred) {
         runners.runMost(deferred, most.from(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0));
     }, options)
-    .add('rx 6', function(deferred) {
+    .add('rx 6', function (deferred) {
         runners.runRx6(deferred,
             rxjs.from(a).pipe(
                 rxOp.map(add1),
@@ -74,18 +74,18 @@ suite.add('rxlite', function(deferred) {
                 rxOp.scan(sum, 0))
         )
     }, options)
-    // .add('kefir', function(deferred) {
-    //     runners.runKefir(deferred, kefirFromArray(a).map(add1).filter(odd).map(add1).map(add1).filter(even).scan(sum, 0).last());
-    // }, options)
-    // .add('highland', function(deferred) {
-    //     runners.runHighland(deferred, highland(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(0, sum));
-    // }, options)
-    // .add('lodash', function() {
-    //     return lodash(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
-    // })
-    // .add('Array', function() {
-    //     return a.map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
-    // })
+// .add('kefir', function(deferred) {
+//     runners.runKefir(deferred, kefirFromArray(a).map(add1).filter(odd).map(add1).map(add1).filter(even).scan(sum, 0).last());
+// }, options)
+// .add('highland', function(deferred) {
+//     runners.runHighland(deferred, highland(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(0, sum));
+// }, options)
+// .add('lodash', function() {
+//     return lodash(a).map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
+// })
+// .add('Array', function() {
+//     return a.map(add1).filter(odd).map(add1).map(add1).filter(even).reduce(sum, 0);
+// })
 
 runners.runSuite(suite);
 

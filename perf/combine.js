@@ -24,7 +24,7 @@ for (var i = 0; i < a.length; ++i) {
 var suite = Benchmark.Suite('combine(add3) -> filter ' + n + ' x 3 integers');
 var options = {
     defer: true,
-    onError: function(e) {
+    onError: function (e) {
         e.currentTarget.failure = e.error;
     }
 };
@@ -57,13 +57,13 @@ var rx1 = rxjs.from(a);
 var rx2 = rxjs.from(a);
 var rx3 = rxjs.from(a);
 
-suite.add('rxlite', function(deferred) {
-        runners.runCallbagX(deferred, callbagX.pipe(
+suite.add('rx4rx-fast', function (deferred) {
+        runners.runFast(deferred, callbagX.pipe(
             callbagX.combineLatest(cbagX1, cbagX2, cbagX3),
             callbagX.map(add3Arr),
             callbagX.filter(even)))
     }, options)
-    .add('cb-basics', function(deferred) {
+    .add('cb-basics', function (deferred) {
         runners.runCallbag(deferred,
             callbag.pipe(
                 callbag.combine(cbag1, cbag2, cbag3),
@@ -72,15 +72,15 @@ suite.add('rxlite', function(deferred) {
             )
         );
     }, options)
-    .add('xstream', function(deferred) {
+    .add('xstream', function (deferred) {
         runners.runXStream(deferred,
             xs.combine(xs1, xs2, xs3).map(add3Arr).filter(even));
     }, options)
-    .add('most', function(deferred) {
+    .add('most', function (deferred) {
         runners.runMost(deferred,
             most.combineArray(add3, [m1, m2, m3]).filter(even).drain());
     }, options)
-    .add('rx 6', function(deferred) {
+    .add('rx 6', function (deferred) {
         runners.runRx6(deferred,
             rxjs.combineLatest(rx1, rx2, rx3).pipe(rxjsOperators.map(add3Arr), rxjsOperators.filter(even)));
     }, options)
