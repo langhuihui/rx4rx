@@ -1,0 +1,24 @@
+{
+    "name": "fastrx",
+    "version": "1.0.0",
+    "description": "fast rxjs implemention",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/langhuihui/rx4rx.git"
+    },
+    "keywords": [
+        "rxjs",
+        "fast"
+    ],
+    "typings": "./index.d.ts",
+    "author": "langhuihui",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/langhuihui/rx4rx/issues"
+    },
+    "homepage": "https://github.com/langhuihui/rx4rx#readme"
+}
