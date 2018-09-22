@@ -37,7 +37,7 @@ exports.share = source => {
 exports.shareReplay = bufferSize => source => {
     const share = new Share(null, source)
     const buffer = []
-    share.next = function(data) {
+    share.next = function (data) {
         buffer.push(data)
         if (buffer.length > bufferSize) {
             buffer.shift()
@@ -46,8 +46,8 @@ exports.shareReplay = bufferSize => source => {
     }
     return sink => {
         sink.defer([share.remove, share, this])
-        share.add(sink);
         buffer.forEach(cache => sink.next(cache))
+        share.add(sink);
     }
 }
 exports.iif = (condition, trueS, falseS) => sink => condition() ? trueS(sink) : falseS(sink)
@@ -129,8 +129,8 @@ exports.combineLatest = (...sources) => sink => {
         nRun: 0
     }
     const array = new Array(nTotal)
-        // const defers = new Array(nTotal)
-        // for (let i = 0; i < nTotal; ++i) defers[i] = sources[i](new CombineLatest(sink, i, array, context))
+    // const defers = new Array(nTotal)
+    // for (let i = 0; i < nTotal; ++i) defers[i] = sources[i](new CombineLatest(sink, i, array, context))
     sources.forEach((source, i) => source(new CombineLatest(sink, i, array, context)))
 }
 exports.startWith = (...xs) => inputSource => (sink, pos = 0, l = xs.length) => {
