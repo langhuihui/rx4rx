@@ -5,10 +5,9 @@ const {
 const {
     share
 } = require('./combination')
-exports.create = f => sink => f(sink)
 exports.subject = source => {
     let subSink = null
-    const observable = share(sink => {
+    const observable = share()(sink => {
         subSink = sink
         source && source(subSink)
     })
@@ -101,6 +100,6 @@ exports.bindNodeCallback = (call, thisArg, ...args) => sink => {
     const inArgs = args.concat((err, ...rargs) => (err && sink.complete(err)) || (sink.next(rargs.length > 1 ? rargs : rargs[0]), sink.complete()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
 }
-exports.never = noop
+exports.never = () => noop
 exports.throwError = e => sink => sink.complete(e)
-exports.empty = exports.throwError()
+exports.empty = () => exports.throwError()

@@ -25,21 +25,28 @@ declare namespace Rx {
         pluck(prop: string): Observable
         switchMap(source: (d: any) => Observable, combineResults?: (outter: any, inner: any) => any): Observable
         switchMapTo(source: Observable): Observable
-        BufferTime(miniseconds: number): Observable
+        bufferTime(miniseconds: number): Observable
+        catchError(selector: (e: Error | any) => Observable): Observable
+
         toPromise(): Promise<any>
         subscribe(n: (d: any) => void, e: (d: Error) => void, c: () => void): Sink
     }
     interface Creator {
+        (f: (sink: Sink) => void): Observable
         of(...args: Array<any>): Observable
+        from(source: Array<any> | Promise | any): Observable
         fromArray(array: Array<any>): Observable
-        create(f: (sink: Sink) => void): Observable
-        bindCallback(f: Function, thisArg: any, ...args: Array<any>): Observable
+        bindCallback(f: (...args: Array<any>, callback: (res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
+        bindNodeCallback(f: (...args: Array<any>, callback: (err: Error | any, res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
         iif(condition: () => Boolean, trueSource: Observable, falseSource: Observable): Observable
         race(...sources: Array<Observable>): Observable
         merge(...sources: Array<Observable>): Observable
         mergeArray(sources: Array<Observable>): Observable
         concat(...sources: Array<Observable>): Observable
         combineLatest(...sources: Array<Observable>): Observable
+        never(): Observable
+        empty(): Observable
+        throwError(e: Error | any): Observable
     }
 }
 declare type Deferable = Sink | Function | Array<any>
@@ -61,15 +68,20 @@ export interface Sink {
 declare type Deliver = (...args: Array<any>) => Observable
 export function pipe<T>(...args: Array<Observable | Observer<T>>): Observable | T
 export function deliver(Class: Function): Deliver;
-export function create(f: (sink: Sink) => void): Observable
+export function from(source: Array<any> | Promise | any): Observable
 export function fromArray(array: Array<any>): Observable
-export function bindCallback(f: Function, thisArg: any, ...args: Array<any>): Observable
+export function bindCallback(f: (...args: Array<any>, callback: (res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
+export function bindNodeCallback(f: (...args: Array<any>, callback: (err: Error | any, res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
 export function iif(condition: () => Boolean, trueSource: Observable, falseSource: Observable): Observable
 export function race(...sources: Array<Observable>): Observable
 export function merge(...sources: Array<Observable>): Observable
 export function mergeArray(sources: Array<Observable>): Observable
 export function concat(...sources: Array<Observable>): Observable
 export function combineLatest(...sources: Array<Observable>): Observable
+export function never(): Observable
+export function empty(): Observable
+export function throwError(e: Error | any): Observable
+
 
 export function take(count: number): Observable
 export function takeUntil(source: Observable): Observable
@@ -96,7 +108,8 @@ export function repeat(count: number): Observable
 export function pluck(prop: string): Observable
 export function switchMap(source: (d: any) => Observable, combineResults?: (outter: any, inner: any) => any): Observable
 export function switchMapTo(source: Observable): Observable
-export function BufferTime(miniseconds: number): Observable
+export function bufferTime(miniseconds: number): Observable
+export function catchError(selector: (e: Error | any) => Observable): Observable
 export const toPromise: Observer<Sink>
 export function subscribe(n: (d: any) => void, e: (d: Error) => void, c: () => void): Observer<Sink>
 

@@ -82,16 +82,28 @@ class Delay extends Sink {
     }
 }
 exports.delay = deliver(Delay)
-
+class CatchError extends Sink {
+    init(selector) {
+        this.selector = selector
+    }
+    complete(err) {
+        if (err) {
+            this.selector(err)(this.sink)
+        } else {
+            super.complete()
+        }
+    }
+}
+exports.catchError = deliver(CatchError)
 Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'))
 
 
 //该代理可以实现将pipe模式转成链式编程
 const rxProxy = {
-    get: (target, prop) => (...args) => new Proxy(exports[prop](...args)(target), rxProxy)
+    get: (target, prop) => target[prop] || ((...args) => new Proxy(exports[prop](...args)(target), rxProxy))
 }
 
-exports.rx = new Proxy({}, {
+exports.rx = new Proxy(f => new Proxy(f, rxProxy), {
     get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy),
     set: (target, prop, value) => exports[prop] = value
 })

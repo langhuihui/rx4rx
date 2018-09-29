@@ -20,17 +20,17 @@ class Share extends Sink {
         }
     }
     next(data) {
-        this.sinks.forEach(s => s.next(data))
+        this.sinks.concat().forEach(s => s.next(data))
     }
     complete(err) {
         this.sinks.forEach(s => s.complete(err))
         this.sinks.length = 0
     }
 }
-exports.share = source => {
+exports.share = () => source => {
     const share = new Share(null, source)
     return sink => {
-        sink.defer([share.remove, share, this])
+        sink.defer([share.remove, share, sink])
         share.add(sink);
     }
 }
