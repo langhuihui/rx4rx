@@ -118,7 +118,7 @@ class CombineLatest extends Sink {
         }
     }
     complete(err) {
-        (--this.context.nLife) === 0 && super.complete(err)
+        if (err || (--this.context.nLife) === 0) super.complete(err)
     }
 }
 exports.combineLatest = (...sources) => sink => {

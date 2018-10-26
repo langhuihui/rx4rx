@@ -97,7 +97,7 @@ exports.bindCallback = (call, thisArg, ...args) => sink => {
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
 }
 exports.bindNodeCallback = (call, thisArg, ...args) => sink => {
-    const inArgs = args.concat((err, ...rargs) => (err && sink.complete(err)) || (sink.next(rargs.length > 1 ? rargs : rargs[0]), sink.complete()));
+    const inArgs = args.concat((err, ...rargs) => err ? sink.complete(err) : (sink.next(rargs.length > 1 ? rargs : rargs[0]), sink.complete()));
     call.apply ? call.apply(thisArg, inArgs) : call(...inArgs)
 }
 exports.never = () => noop
