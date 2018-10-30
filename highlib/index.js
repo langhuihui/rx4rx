@@ -97,13 +97,43 @@ class CatchError extends Sink {
 exports.catchError = deliver(CatchError)
 Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'))
 
-
-//该代理可以实现将pipe模式转成链式编程
-const rxProxy = {
-    get: (target, prop) => target[prop] || ((...args) => new Proxy(exports[prop](...args)(target), rxProxy))
+if(Proxy){
+    //该代理可以实现将pipe模式转成链式编程
+    const rxProxy = {
+        get: (target, prop) => target[prop] || ((...args) => new Proxy(exports[prop](...args)(target), rxProxy))
+    }
+    exports.rx = new Proxy(f => new Proxy(f, rxProxy), {
+        get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy),
+        set: (target, prop, value) => exports[prop] = value
+    })
 }
-
-exports.rx = new Proxy(f => new Proxy(f, rxProxy), {
-    get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy),
-    set: (target, prop, value) => exports[prop] = value
-})
+else{
+    const keys = Object.keys(exports).filter(key=>{
+        switch(key){
+            case 'Sink':
+            case 'pipe':
+            case 'reusePipe':
+            return false
+            default: return true
+        }
+    })
+    function setProps(t){
+        keys.forEach(key=>{
+            Object.defineProperty(t,key,{
+                get(){
+                    return (...args) =>setProps(exports[key](...args)(t))
+                }
+            })
+        })
+        return t
+    }
+    const rx = f => setProps(f)
+    keys.forEach(key=>{
+        Object.defineProperty(rx,key,{
+            get(){
+                return (...args) =>setProps(exports[key](...args))
+            }
+        })
+    })
+    exports.rx = rx
+}
