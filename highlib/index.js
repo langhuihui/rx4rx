@@ -97,7 +97,34 @@ class CatchError extends Sink {
 exports.catchError = deliver(CatchError)
 Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'))
 
-if (Proxy) {
+if (typeof Proxy == 'undefined') {
+    const prototype = {};
+    //将一个Observable函数的原型修改为具有所有operator的方法
+    const rx = f => Object.setPrototypeOf(f, prototype);
+    //提供动态添加Obserable以及operator的方法
+    rx.set = ext => {
+        for (let key in ext) {
+            const f = ext[key]
+            switch (key) {
+                case 'Sink':
+                case 'pipe':
+                case 'reusePipe':
+                    break
+                case 'subscribe':
+                    prototype[key] = function(...args) { return f(...args)(this) }
+                    break
+                case 'toPromise':
+                    prototype[key] = function() { return f(this) }
+                    break
+                default:
+                    prototype[key] = function(...args) { return rx(f(...args)(this)) }
+                    rx[key] = (...args) => rx(f(...args))
+            }
+        }
+    }
+    rx.set(exports)
+    exports.rx = rx
+} else {
     //该代理可以实现将pipe模式转成链式编程
     const rxProxy = {
         get: (target, prop) => target[prop] || ((...args) => new Proxy(exports[prop](...args)(target), rxProxy))
@@ -106,31 +133,4 @@ if (Proxy) {
         get: (target, prop) => (...args) => new Proxy(exports[prop](...args), rxProxy),
         set: (target, prop, value) => exports[prop] = value
     })
-} else {
-    const keys = Object.keys(exports).filter(key => {
-        switch (key) {
-            case 'Sink':
-            case 'pipe':
-            case 'reusePipe':
-                return false
-            default:
-                return true
-        }
-    })
-    const prototype = keys.reduce((aac, c) =>
-        Object.defineProperty(aac, c, {
-            get() {
-                return (...args) => Object.setPrototypeOf(exports[c](...args)(this), prototype)
-            }
-        }), {})
-
-    const rx = f => Object.setPrototypeOf(f, prototype)
-    keys.forEach(key => {
-        Object.defineProperty(rx, key, {
-            get() {
-                return (...args) => Object.setPrototypeOf(exports[key](...args), prototype)
-            }
-        })
-    })
-    exports.rx = rx
 }

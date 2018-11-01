@@ -25,32 +25,30 @@ function sum(x, y) {
 //     map(add1),
 //     reduce(sum, 0))(subscribe(console.log))
 
-// let high = require('./highlib')
-// const keys = Object.keys(high).filter(key => {
-//     switch (key) {
-//         case 'Sink':
-//         case 'pipe':
-//         case 'reusePipe':
-//             return false
-//         default:
-//             return true
-//     }
-// })
-// const prototype = keys.reduce((aac, c) =>
-//     Object.defineProperty(aac, c, {
-//         get() {
-//             return (...args) => Object.setPrototypeOf(high[c](...args)(this), prototype)
-//         }
-//     }), {})
-
-// const rx = f => Object.setPrototypeOf(f, prototype)
-// keys.forEach(key => {
-//         Object.defineProperty(rx, key, {
-//             get() {
-//                 return (...args) => Object.setPrototypeOf(high[key](...args), prototype)
-//             }
-//         })
-//     })
-const rx = require('./highlib').rx
+let high = require('./highlib')
+const prototype = {}
+const rx = f => Object.setPrototypeOf(f, prototype)
+rx.set = ext => {
+    for (let key in ext) {
+        const f = ext[key]
+        switch (key) {
+            case 'Sink':
+            case 'pipe':
+            case 'reusePipe':
+                break
+            case 'subscribe':
+                prototype[key] = function(...args) { return f(...args)(this) }
+                break
+            case 'toPromise':
+                prototype[key] = function() { return f(this) }
+                break
+            default:
+                prototype[key] = function(...args) { return rx(f(...args)(this)) }
+                rx[key] = (...args) => rx(f(...args))
+        }
+    }
+}
+rx.set(high)
+    // const rx = require('./highlib').rx
 rx.interval(1000).skipUntil(rx.of(1).delay(3000)).subscribe(console.log)
     // rx.fromArray([1, 2, 3, 4, 5]).filter(even).map(add1).reduce(sum, 0).subscribe(console.log)
