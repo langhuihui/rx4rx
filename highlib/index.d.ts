@@ -1,3 +1,5 @@
+import { fromEvent, range } from "./producer";
+
 declare namespace Rx {
     interface Observable {
         take(count: number): Observable
@@ -33,9 +35,18 @@ declare namespace Rx {
     }
     interface Creator {
         (f: (sink: Sink) => void): Observable
+        subject(source?: Observable): Observable
         of(...args: Array<any>): Observable
         from(source: Array<any> | Promise | any): Observable
         fromArray(array: Array<any>): Observable
+        fromEventPattern(add: (h: Function) => any, remove: (h: Function) => any): Observable
+        fromEvent(target: any, name: string): Observable
+        fromVueEvent(target: any, name: string): Observable
+        fromEventSource(href: string, opt?: any): Observable
+        fromPromise(source: Promise): Observable
+        range(start: Number, count: Number): Observable
+        interval(period: Number): Observable
+        timer(delay: Number, period: Number): Observable
         bindCallback(f: (...args: Array<any>, callback: (res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
         bindNodeCallback(f: (...args: Array<any>, callback: (err: Error | any, res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
         iif(condition: () => Boolean, trueSource: Observable, falseSource: Observable): Observable
@@ -68,8 +79,17 @@ export interface Sink {
 declare type Deliver = (...args: Array<any>) => Observable
 export function pipe<T>(...args: Array<Observable | Observer<T>>): Observable | T
 export function deliver(Class: Function): Deliver;
+export function subject(source?: Observable): Observable
 export function from(source: Array<any> | Promise | any): Observable
 export function fromArray(array: Array<any>): Observable
+export function fromEventPattern(add: (h: Function) => any, remove: (h: Function) => any): Observable
+export function fromEvent(target: any, name: string): Observable
+export function fromVueEvent(target: any, name: string): Observable
+export function fromEventSource(href: string, opt?: any): Observable
+export function fromPromise(source: Promise): Observable
+export function range(start: Number, count: Number): Observable
+export function interval(period: Number): Observable
+export function timer(delay: Number, period: Number): Observable
 export function bindCallback(f: (...args: Array<any>, callback: (res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
 export function bindNodeCallback(f: (...args: Array<any>, callback: (err: Error | any, res: any) => void) => void, thisArg: any, ...args: Array<any>): Observable
 export function iif(condition: () => Boolean, trueSource: Observable, falseSource: Observable): Observable

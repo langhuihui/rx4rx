@@ -10,7 +10,7 @@ npm i fastrx
 #usage
 
 ```js
-import {rx} from 'fastrx';
+import { rx } from 'fastrx';
 
 rx.of(1,2,3).filter(x=>x<2).subscribe(console.log)
 ```
@@ -35,3 +35,51 @@ dataflow for 1000000 source events
 |most        | 17.32 op/s ±  1.93%  | (82 samples)
 |rx 6        |  6.28 op/s ±  3.10%  | (35 samples)
 -----------------------------------------------
+
+#extensible
+
+## Observable.create way
+
+```js
+import { rx } from 'fastrx';
+const myObservable = rx(sink=>{
+    sink.next('data')
+    sink.complete()
+})
+myObservable.subscribe(console.log)
+```
+or
+
+```js
+import {pipe,subscribe} from 'fastrx';
+const myObservable = ()=>sink=>{
+    sink.next('data')
+    sink.complete()
+}
+pipe(myObservable(), subscribe(console.log))
+```
+
+## add to library
+```js
+import { rx } from 'fastrx';
+rx.myObservable = (args) => sink => {
+    const id = setTimeout(()=>{
+        sink.next(args)
+        sink.complete()
+    })
+    sink.defer([clearTimeout,null,id])
+    //or sink.defer(()=>clearTimeout(id))
+}
+```
+then you can use your observable anywhere
+
+```js
+import { rx} from 'fastrx';
+rx.myObservable('something').subscribe(console.log)
+```
+or
+
+```js
+import {pipe,myObservable} from 'fastrx';
+pipe(myObservable('something'), subscribe(console.log))
+```

@@ -60,6 +60,21 @@ exports.fromEvent = (target, name) => {
         return exports.fromEventPattern(handler => target[addF](name, handler), handler => target[removeF](name, handler))
     else throw 'target is not a EventDispachter'
 }
+exports.fromVueEvent = (vm, name) => sink => {
+    const ls = e => sink.next(e)
+    vm.$on(name, ls)
+    sink.defer([vm.$off, vm, ls])
+}
+exports.fromEventSource = (src, arg) => sink => {
+    if (typeof EventSource == 'undefined') {
+        return sink.complete(new Error('No EventSource defined!'))
+    }
+    const evtSource = new EventSource(src, arg)
+    evtSource.onerror = err => sink.complete(err)
+    evtSource.onmessage = evt => sink.next(evt.data)
+    sink.defer([evtSource.close, evtSource])
+}
+
 exports.range = (start, count) => (sink, pos = start, end = count + start) => {
     while (pos < end && !sink.disposed) sink.next(pos++)
     sink.complete()
