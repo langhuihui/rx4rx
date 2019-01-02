@@ -1,5 +1,3 @@
-import { fromEvent, range } from "./producer";
-
 declare namespace Rx {
     interface Observable {
         take(count: number): Observable
