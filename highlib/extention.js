@@ -1,5 +1,5 @@
 const { Sink } = require('./common')
-
+const { rx } = require('./index.js')
 exports.koaEventStream = async function (ctx, next) {
     const sink = new Sink
     const { res, req } = ctx;
