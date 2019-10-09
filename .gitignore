@@ -1,2 +1,7 @@
 node_modules
 .vscode
+.idea
+coverage
+CppProperties.json
+node-addon
+.vs

@@ -112,8 +112,10 @@ exports.vueEventSource = {
                     this.$emit('update:list', this.list)
                 }
             },
-            render() {
-                return this.$scopedSlots.default(this.list)
+            render(h) {
+                if (typeof this.$scopedSlots.default == 'function')
+                    return this.$scopedSlots.default(this.list)
+                else return h()
             }
         })
     }

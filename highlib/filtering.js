@@ -12,7 +12,7 @@ const {
 exports.filter = f => source => sink => source(sink.fusionFilter ? sink.fusionFilter(f) : new Filter(sink, f))
 
 class Ignore extends Sink {
-    next() {}
+    next() { }
 }
 exports.ignoreElements = source => sink => source(new Ignore(sink))
 
@@ -42,7 +42,7 @@ class _TakeUntil extends Sink {
 class TakeUntil extends Sink {
     init(sSrc) {
         this._takeUntil = new _TakeUntil(null, this).subscribe(sSrc)
-            //将开关事件sink纳入销毁链
+        //将开关事件sink纳入销毁链
         this.defer(this._takeUntil)
     }
     complete(err) {
@@ -167,7 +167,7 @@ class Throttle extends Sink {
         this._throttle.isComplete = false
         this._throttle.last = data
         this._throttle.hasValue = true
-        this.durationSelector(data)(this._throttled)
+        this.durationSelector(data)(this._throttle)
     }
     next(data) {
         if (!this._throttle || this._throttle.isComplete) {
@@ -179,7 +179,7 @@ class Throttle extends Sink {
             if (this.leading) {
                 this.sink.next(data)
                 this.throttle(data)
-                this._throttled.hasValue = false
+                this._throttle.hasValue = false
             } else {
                 this.throttle(data)
             }
