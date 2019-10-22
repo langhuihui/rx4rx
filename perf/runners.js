@@ -18,12 +18,12 @@ exports.runKefir = runKefir;
 exports.kefirFromArray = kefirFromArray;
 exports.runBacon = runBacon;
 exports.runHighland = runHighland;
-
+exports.runAsync = runAsync
 exports.getIntArg = getIntArg;
 exports.getIntArg2 = getIntArg2;
 exports.logResults = logResults;
 
-function noop() {}
+function noop() { }
 
 function _getIntArg(defaultValue, index) {
     var n = parseInt(process.argv[index]);
@@ -151,7 +151,15 @@ function runFast(deferred, rxStream) {
     //     }
     // })
 }
-
+function runAsync(deferred, observable) {
+    observable.subscribe(noop, error => {
+        deferred.benchmark.emit({
+            type: 'error',
+            error
+        });
+        deferred.resolve(error);
+    }, () => deferred.resolve())
+}
 function runRx6(deferred, rxStream) {
     rxStream.subscribe(
         noop,

@@ -36,7 +36,7 @@ class _TakeUntil extends Sink {
     }
     next() {
         //收到事件，终结两个sink
-        this.sourceSink.dispose()
+        this.sourceSink.complete()
     }
 }
 class TakeUntil extends Sink {

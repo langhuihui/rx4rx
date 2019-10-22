@@ -1,6 +1,7 @@
 var Benchmark = require('benchmark');
 var callbag = require('callbag-basics');
 var callbagX = require('../highlib')
+var asyncLib = require('../asynclib')
 var xs = require('xstream').default;
 var most = require('most');
 var rxjs = require('rxjs')
@@ -45,6 +46,10 @@ var cbagX1 = callbagX.fromArray(a);
 var cbagX2 = callbagX.fromArray(a);
 var cbagX3 = callbagX.fromArray(a);
 
+var asyncLib1 = asyncLib.fromArray(a)
+var asyncLib2 = asyncLib.fromArray(a)
+var asyncLib3 = asyncLib.fromArray(a)
+
 var xs1 = xs.fromArray(a);
 var xs2 = xs.fromArray(a);
 var xs3 = xs.fromArray(a);
@@ -57,7 +62,12 @@ var rx1 = rxjs.from(a);
 var rx2 = rxjs.from(a);
 var rx3 = rxjs.from(a);
 
-suite.add('rx4rx-fast', function (deferred) {
+suite
+    .add('rx5rx-async', function (deferred) {
+        runners.runAsync(deferred,
+            asyncLib.combineLatest(asyncLib1, asyncLib2, asyncLib3).pipe(map(add3Arr), filter(even)))
+    }, options)
+    .add('rx4rx-fast', function (deferred) {
         runners.runFast(deferred, callbagX.pipe(
             callbagX.combineLatest(cbagX1, cbagX2, cbagX3),
             callbagX.map(add3Arr),
