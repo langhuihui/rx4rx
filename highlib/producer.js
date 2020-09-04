@@ -65,6 +65,8 @@ exports.fromVueEvent = (vm, name) => sink => {
     vm.$on(name, ls)
     sink.defer([vm.$off, vm, ls])
 }
+exports.fromVueEventOnce = (vm , name) => sink => vm.$once(name,e => sink.next(e))
+
 exports.fromEventSource = (src, arg) => sink => {
     if (typeof EventSource == 'undefined') {
         return sink.complete(new Error('No EventSource defined!'))
