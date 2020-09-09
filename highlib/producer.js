@@ -48,6 +48,7 @@ exports.timer = (delay, period) => sink => {
     }, delay)]
     sink.defer(defer)
 }
+exports.fromAnimationFrame = () => sink => sink.defer([cancelAnimationFrame,,requestAnimationFrame(t=>sink.next(t))])
 exports.fromEventPattern = (add, remove) => sink => {
     const n = d => sink.next(d);
     sink.defer([remove, , n])

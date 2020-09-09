@@ -83,3 +83,32 @@ or
 import {pipe,myObservable} from 'fastrx';
 pipe(myObservable('something'), subscribe(console.log))
 ```
+
+## vue usage
+```js
+import { rx } from "fastrx";
+import { vueHookEvent, vueDirective } from "fastrx/extention";
+Vue.use(vueHookEvent);
+Vue.use(vueDirective);
+Vue.prototype.$rx = rx;
+
+//in vue
+this.$rx.interval(1000).takeUntil(this.$fromEvent("destroyed")).subscribe(()=>{})
+```
+```html
+<template>
+<div v-rx:btn.click="event"></div>
+</template>
+<script>
+export default {
+    data(){
+        return {event:{}}
+    },
+    mounted(){
+        this.event.btnclick.subscribe(()=>{
+            
+        })
+    }
+}
+</script>
+```

@@ -40,8 +40,10 @@ declare namespace Rx {
         fromEventPattern(add: (h: Function) => any, remove: (h: Function) => any): Observable
         fromEvent(target: any, name: string): Observable
         fromVueEvent(target: any, name: string): Observable
+        fromVueEventOnce(target:any,name:string):Observable
         fromEventSource(href: string, opt?: any): Observable
         fromPromise(source: Promise): Observable
+        fromAnimationFrame():Observable
         range(start: Number, count: Number): Observable
         interval(period: Number): Observable
         timer(delay: Number, period: Number): Observable
@@ -83,8 +85,10 @@ export function fromArray(array: Array<any>): Observable
 export function fromEventPattern(add: (h: Function) => any, remove: (h: Function) => any): Observable
 export function fromEvent(target: any, name: string): Observable
 export function fromVueEvent(target: any, name: string): Observable
+export function fromVueEventOnce(target:any,name:string):Observable
 export function fromEventSource(href: string, opt?: any): Observable
 export function fromPromise(source: Promise): Observable
+export function fromAnimationFrame():Observable
 export function range(start: Number, count: Number): Observable
 export function interval(period: Number): Observable
 export function timer(delay: Number, period: Number): Observable
