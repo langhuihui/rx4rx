@@ -1,6 +1,6 @@
 {
     "name": "fastrx",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "fast rxjs implemention",
     "main": "index.js",
     "scripts": {

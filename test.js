@@ -49,6 +49,7 @@ rx.set = ext => {
     }
 }
 rx.set(high)
+rx.interval(1000).throttle(()=>rx.never()).subscribe(console.log)
     // const rx = require('./highlib').rx
-rx.interval(1000).skipUntil(rx.of(1).delay(3000)).subscribe(console.log)
+//rx.interval(1000).skipUntil(rx.of(1).delay(3000)).subscribe(console.log)
     // rx.fromArray([1, 2, 3, 4, 5]).filter(even).map(add1).reduce(sum, 0).subscribe(console.log)
