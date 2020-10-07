@@ -31,13 +31,13 @@ exports.toPromise = source => new Promise((resolve, reject) => {
 
 //SUBSCRIBER
 exports.subscribe = (n, e = noop, c = noop) => source => {
-        const sink = new Sink()
-        sink.next = n
-        sink.complete = err => err ? e(err) : c()
-        source(sink)
-        return sink
-    }
-    // UTILITY 
+    const sink = new Sink()
+    sink.next = n
+    sink.complete = err => err ? e(err) : c()
+    source(sink)
+    return sink
+}
+// UTILITY 
 class Tap extends Sink {
     init(f) {
         this.f = f
@@ -55,7 +55,7 @@ class Delay extends Sink {
     init(delay) {
         this.delayTime = delay
         this.buffer = []
-        this.timeoutId = [clearTimeout, , ]
+        this.timeoutId = [clearTimeout, ,]
         this.defer(this.timeoutId)
     }
     delay(delay) {
@@ -95,7 +95,7 @@ class CatchError extends Sink {
     }
 }
 exports.catchError = deliver(CatchError)
-Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'))
+Object.assign(exports, require('./combination'), require('./filtering'), require('./mathematical'), require('./producer'), require('./transformation'), require('./vue3'))
 
 if (typeof Proxy == 'undefined') {
     const prototype = {};
@@ -111,13 +111,13 @@ if (typeof Proxy == 'undefined') {
                 case 'reusePipe':
                     break
                 case 'subscribe':
-                    prototype[key] = function(...args) { return f(...args)(this) }
+                    prototype[key] = function (...args) { return f(...args)(this) }
                     break
                 case 'toPromise':
-                    prototype[key] = function() { return f(this) }
+                    prototype[key] = function () { return f(this) }
                     break
                 default:
-                    prototype[key] = function(...args) { return rx(f(...args)(this)) }
+                    prototype[key] = function (...args) { return rx(f(...args)(this)) }
                     rx[key] = (...args) => rx(f(...args))
             }
         }

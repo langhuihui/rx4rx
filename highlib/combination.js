@@ -5,26 +5,26 @@ const {
 class Share extends Sink {
     init(source) {
         this.source = source
-        this.sinks = []
+        this.sinks = new Set()
     }
     add(sink) {
-        this.sinks.push(sink)
-        if (this.sinks.length === 1) {
+        this.sinks.add(sink)
+        if (this.sinks.size === 1) {
             this.source(this)
         }
     }
     remove(sink) {
-        this.sinks.splice(this.sinks.indexOf(sink), 1)
-        if (this.sinks.length === 0) {
+        this.sinks.delete(sink)
+        if (this.sinks.size===0) {
             this.defer()
         }
     }
     next(data) {
-        this.sinks.concat().forEach(s => s.next(data))
+        this.sinks.forEach(s => s.next(data))
     }
     complete(err) {
         this.sinks.forEach(s => s.complete(err))
-        this.sinks.length = 0
+        this.sinks.clear()
     }
 }
 exports.share = () => source => {
