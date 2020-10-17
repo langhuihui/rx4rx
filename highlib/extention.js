@@ -9,7 +9,7 @@ exports.koaEventStream = async function (ctx, next) {
         'Connection': 'keep-alive',
         'X-Accel-Buffering': 'no'
     });
-    sink.next = data => res.write("data: " + JSON.stringify(data) + "\n\n");
+    sink.next = data => res.write((typeof data == 'string' ? data : "data: " + JSON.stringify(data)) + "\n\n");
     sink.complete = err => res.end();
     sink.defer([clearInterval, null, setInterval(() => res.write(':keep-alive\n\n'), 1000 * 30)]);
     (await next())(sink)
@@ -20,7 +20,7 @@ exports.koaEventStream = async function (ctx, next) {
 exports.vueHookEvent = {
     install(Vue, opt) {
         Vue.prototype.$fromEvent = function (name) {
-            switch(name){
+            switch (name) {
                 case "updated":
                 case "beforeUpdate":
                     return rx.fromVueEvent(this, "hook:" + name)

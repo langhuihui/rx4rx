@@ -84,12 +84,12 @@ import {pipe,myObservable} from 'fastrx';
 pipe(myObservable('something'), subscribe(console.log))
 ```
 
-## vue usage
+## vue2.0 usage
 ```js
 import { rx } from "fastrx";
-import { vueHookEvent, vueDirective } from "fastrx/extention";
+import { vueHookEvent } from "fastrx/extention";
 Vue.use(vueHookEvent);
-Vue.use(vueDirective);
+
 Vue.prototype.$rx = rx;
 
 //in vue
@@ -97,17 +97,39 @@ this.$rx.interval(1000).takeUntil(this.$fromEvent("destroyed")).subscribe(()=>{}
 ```
 ```html
 <template>
-<div v-rx:btn.click="event"></div>
+<div @click.native="handler"></div>
 </template>
 <script>
+import {rx} from 'fastrx'
+const ob = rx.eventHandler()
 export default {
     data(){
-        return {event:{}}
+        return {handler:ob.handler}
     },
     mounted(){
-        this.event.btnclick.subscribe(()=>{
+        ob.subscribe(()=>{
             
         })
+    }
+}
+</script>
+```
+
+## vue3.0 usage
+```html
+<template>
+<div @click.native="handler"></div>
+</template>
+<script>
+import {rx} from 'fastrx'
+import {onUnmounted} from 'vue'
+export default {
+    setup(){
+        const ob = rx.eventHandler()
+        ob.switchMapTo(rx.interval(1000)).takeUntil(rx.fromLifeHook(onUnmounted)).subscribe(()=>{
+            
+        })
+        return {handler:ob.handler}
     }
 }
 </script>
