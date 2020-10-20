@@ -15,7 +15,7 @@ class Share extends Sink {
     }
     remove(sink) {
         this.sinks.delete(sink)
-        if (this.sinks.size===0) {
+        if (this.sinks.size === 0) {
             this.defer()
         }
     }
@@ -133,6 +133,34 @@ exports.combineLatest = (...sources) => sink => {
     // for (let i = 0; i < nTotal; ++i) defers[i] = sources[i](new CombineLatest(sink, i, array, context))
     sources.forEach((source, i) => source(new CombineLatest(sink, i, array, context)))
 }
+class Zip extends Sink {
+    init(index, array, context) {
+        this.index = index
+        this.context = context
+        this.array = array
+        this.buffer = []
+        array[index] = this.buffer
+    }
+    next(data) {
+        this.buffer.push(data)
+        if (this.array.every(x => x.length)) {
+            this.sink.next(this.array.map(x => x.shift()))
+        }
+    }
+    complete(err) {
+        if (err || (--this.context.nLife) === 0) super.complete(err)
+    }
+}
+exports.zip = (...sources) => sink => {
+    const nTotal = sources.length;
+    const context = {
+        nTotal,
+        nLife: nTotal
+    }
+    const array = new Array(nTotal)
+    sources.forEach((source, i) => source(new Zip(sink, i, array, context)))
+}
+
 exports.startWith = (...xs) => inputSource => (sink, pos = 0, l = xs.length) => {
     while (pos < l) {
         if (sink.disposed) return

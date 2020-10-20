@@ -57,6 +57,7 @@ declare namespace Rx {
         mergeArray(sources: Array<Observable>): Observable
         concat(...sources: Array<Observable>): Observable
         combineLatest(...sources: Array<Observable>): Observable
+        zip(...sources: Array<Observable>): Observable
         never(): Observable
         empty(): Observable
         throwError(e: Error | any): Observable
@@ -104,6 +105,7 @@ export function merge(...sources: Array<Observable>): Observable
 export function mergeArray(sources: Array<Observable>): Observable
 export function concat(...sources: Array<Observable>): Observable
 export function combineLatest(...sources: Array<Observable>): Observable
+export function zip(...sources: Array<Observable>): Observable
 export function never(): Observable
 export function empty(): Observable
 export function throwError(e: Error | any): Observable
