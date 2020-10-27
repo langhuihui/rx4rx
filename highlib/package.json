@@ -1,10 +1,10 @@
 {
     "name": "fastrx",
-    "version": "1.2.2",
+    "version": "1.3.0",
     "description": "fast rxjs implemention",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "build": "rollup -c"
     },
     "repository": {
         "type": "git",
@@ -20,5 +20,12 @@
     "bugs": {
         "url": "https://github.com/langhuihui/rx4rx/issues"
     },
-    "homepage": "https://github.com/langhuihui/rx4rx#readme"
+    "homepage": "https://github.com/langhuihui/rx4rx#readme",
+    "devDependencies": {
+        "@babel/core": "^7.12.3",
+        "@babel/preset-env": "^7.12.1",
+        "rollup": "^2.32.1",
+        "rollup-plugin-babel": "^4.4.0",
+        "rollup-plugin-uglify": "^6.0.4"
+    }
 }

@@ -112,7 +112,7 @@ exports.vueEventSource = {
                             }
                         }
                         else {
-                            this.addData(data);
+                            this.addData(x);
                         }
                     }, e => this.$emit('error', e));
                 this.$watch('src', v => srcChanged.next(v), {
