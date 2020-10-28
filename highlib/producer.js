@@ -18,21 +18,9 @@ exports.subject = source => {
 }
 
 exports.fromArray = array => sink => {
-    // asap(() => {
-    //         let pos = 0
-    //         const l = array.length
-    //         while (pos < l && !sink.disposed) sink.next(array[pos++])
-    //         sink.complete()
-    //     }, () => sink.dispose())
-    // asap(() => {
-    //     sink.pos = 0
-    //     const l = array.length
-    //     while (sink.pos < l && !sink.disposed) sink.next(array[sink.pos++])
-    //     sink.complete()
-    // }, () => sink.dispose())
-    sink.pos = 0
+    let pos = 0
     const l = array.length
-    while (sink.pos < l && !sink.disposed) sink.next(array[sink.pos++])
+    while (pos < l && !sink.disposed) sink.next(array[pos++])
     sink.complete()
 }
 exports.of = (...items) => exports.fromArray(items)
@@ -49,12 +37,12 @@ exports.timer = (delay, period) => sink => {
     sink.defer(defer)
 }
 exports.fromAnimationFrame = () => sink => {
-    function next(t){
+    function next(t) {
         sink.next(t)
         defer[2] = requestAnimationFrame(next)
     }
-    const defer = 
-    [cancelAnimationFrame,,requestAnimationFrame(next)]
+    const defer =
+        [cancelAnimationFrame, , requestAnimationFrame(next)]
     sink.defer(defer)
 }
 exports.fromEventPattern = (add, remove) => sink => {
@@ -74,7 +62,7 @@ exports.fromVueEvent = (vm, name) => sink => {
     vm.$on(name, ls)
     sink.defer([vm.$off, vm, ls])
 }
-exports.fromVueEventOnce = (vm , name) => sink => vm.$once(name,e => sink.next(e))
+exports.fromVueEventOnce = (vm, name) => sink => vm.$once(name, e => sink.next(e))
 
 exports.fromEventSource = (src, arg) => sink => {
     if (typeof EventSource == 'undefined') {
